@@ -56,7 +56,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       accountId: accountId,
       toAccountId: Value(toAccountId),
       categoryId: Value(categoryId),
-      dateTime: dateTime.millisecondsSinceEpoch,
+      occurredAt: dateTime.millisecondsSinceEpoch,
       note: Value(note),
       recurringId: Value(recurringId),
     ));
@@ -81,7 +81,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       accountId: accountId,
       toAccountId: Value(toAccountId),
       categoryId: Value(categoryId),
-      dateTime: dateTime.millisecondsSinceEpoch,
+      occurredAt: dateTime.millisecondsSinceEpoch,
       note: Value(note),
     ));
   }
@@ -167,7 +167,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
         accountId: rule.accountId,
         toAccountId: Value(rule.toAccountId),
         categoryId: Value(rule.categoryId),
-        dateTime: ruleMs,
+        occurredAt: ruleMs,
         note: Value(rule.note),
         recurringId: Value(rule.id),
       ));

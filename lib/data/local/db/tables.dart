@@ -36,7 +36,9 @@ class Transactions extends Table {
       integer().references(Accounts, #id, onDelete: KeyAction.cascade)();
   IntColumn get toAccountId =>
       integer().nullable().references(Accounts, #id, onDelete: KeyAction.setNull)();
-  IntColumn get dateTime => integer()();
+  // `dateTime` clashes with Drift's inherited Table.dateTime() helper, so we
+  // name the getter differently while keeping the SQL column as `date_time`.
+  IntColumn get occurredAt => integer().named('date_time')();
   TextColumn get note => text().nullable()();
   TextColumn get attachmentPath => text().nullable()();
   IntColumn get recurringId =>

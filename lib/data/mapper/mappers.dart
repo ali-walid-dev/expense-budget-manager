@@ -86,7 +86,7 @@ extension TransactionMapper on d.Transaction {
         categoryId: categoryId,
         accountId: accountId,
         toAccountId: toAccountId,
-        dateTime: DateTime.fromMillisecondsSinceEpoch(dateTime),
+        dateTime: DateTime.fromMillisecondsSinceEpoch(occurredAt),
         note: note,
         attachmentPath: attachmentPath,
         recurringId: recurringId,

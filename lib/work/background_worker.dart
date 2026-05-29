@@ -37,7 +37,5 @@ Future<void> initBackgroundWorker() async {
     taskRunRecurring,
     frequency: const Duration(hours: 24),
     initialDelay: const Duration(minutes: 1),
-    constraints: Constraints(networkType: NetworkType.notRequired),
-    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );
 }

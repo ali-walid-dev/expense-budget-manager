@@ -90,7 +90,7 @@ class AccountRepositoryImpl implements AccountRepository {
       type: TransactionType.transfer,
       accountId: fromAccountId,
       toAccountId: Value(toAccountId),
-      dateTime: ts,
+      occurredAt: ts,
       note: Value(note),
     ));
   }

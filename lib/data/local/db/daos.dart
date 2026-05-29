@@ -14,26 +14,24 @@ class AccountDao extends DatabaseAccessor<AppDatabase> with _$AccountDaoMixin {
       (select(accounts)..where((a) => a.archived.equals(false))).watch();
 
   Future<int> insert(AccountsCompanion c) => into(accounts).insert(c);
-  Future<bool> update_(AccountsCompanion c) => update(accounts).replace(c);
+  Future<bool> update_(Insertable<Account> row) =>
+      update(accounts).replace(row);
   Future<int> deleteById(int id) =>
       (delete(accounts)..where((a) => a.id.equals(id))).go();
 
   /// Computed balance via SQL: initialBalance + SUM(income) - SUM(expense)
-  /// + SUM(transfers in) - SUM(transfers out).
+  /// + SUM(transfers in) - SUM(transfers out). Inlined SQL, no
+  /// `customExpression` — simpler and avoids resolution issues.
   Stream<List<({Account account, int balance})>> watchAllWithBalance() {
-    final sumIncome = customExpression<int>(
-        "COALESCE(SUM(CASE WHEN t.type='income' AND t.account_id=a.id THEN t.amount ELSE 0 END), 0)");
-    final sumExpense = customExpression<int>(
-        "COALESCE(SUM(CASE WHEN t.type='expense' AND t.account_id=a.id THEN t.amount ELSE 0 END), 0)");
-    final sumTransferOut = customExpression<int>(
-        "COALESCE(SUM(CASE WHEN t.type='transfer' AND t.account_id=a.id THEN t.amount ELSE 0 END), 0)");
-    final sumTransferIn = customExpression<int>(
-        "COALESCE(SUM(CASE WHEN t.type='transfer' AND t.to_account_id=a.id THEN t.amount ELSE 0 END), 0)");
-
     final q = customSelect(
       '''
       SELECT a.*,
-        (a.initial_balance + $sumIncome - $sumExpense + $sumTransferIn - $sumTransferOut) AS balance
+        (a.initial_balance +
+          COALESCE(SUM(CASE WHEN t.type='income' AND t.account_id=a.id THEN t.amount ELSE 0 END), 0) -
+          COALESCE(SUM(CASE WHEN t.type='expense' AND t.account_id=a.id THEN t.amount ELSE 0 END), 0) +
+          COALESCE(SUM(CASE WHEN t.type='transfer' AND t.to_account_id=a.id THEN t.amount ELSE 0 END), 0) -
+          COALESCE(SUM(CASE WHEN t.type='transfer' AND t.account_id=a.id THEN t.amount ELSE 0 END), 0)
+        ) AS balance
       FROM accounts a
       LEFT JOIN transactions t ON t.account_id = a.id OR t.to_account_id = a.id
       WHERE a.archived = 0
@@ -62,7 +60,8 @@ class CategoryDao extends DatabaseAccessor<AppDatabase> with _$CategoryDaoMixin 
 
   Stream<List<Category>> watchAll() => select(categories).watch();
   Future<int> insert(CategoriesCompanion c) => into(categories).insert(c);
-  Future<bool> update_(CategoriesCompanion c) => update(categories).replace(c);
+  Future<bool> update_(Insertable<Category> row) =>
+      update(categories).replace(row);
   Future<int> deleteById(int id) =>
       (delete(categories)..where((c) => c.id.equals(id))).go();
 }
@@ -73,8 +72,8 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
   TransactionDao(super.db);
 
   Future<int> insert(TransactionsCompanion c) => into(transactions).insert(c);
-  Future<bool> update_(TransactionsCompanion c) =>
-      update(transactions).replace(c);
+  Future<bool> update_(Insertable<Transaction> row) =>
+      update(transactions).replace(row);
   Future<int> deleteById(int id) =>
       (delete(transactions)..where((t) => t.id.equals(id))).go();
 
@@ -301,7 +300,8 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
   BudgetDao(super.db);
   Stream<List<Budget>> watchAll() => select(budgets).watch();
   Future<int> insert(BudgetsCompanion c) => into(budgets).insert(c);
-  Future<bool> update_(BudgetsCompanion c) => update(budgets).replace(c);
+  Future<bool> update_(Insertable<Budget> row) =>
+      update(budgets).replace(row);
   Future<int> deleteById(int id) =>
       (delete(budgets)..where((b) => b.id.equals(id))).go();
 }
@@ -315,8 +315,8 @@ class RecurringDao extends DatabaseAccessor<AppDatabase>
       (select(recurringRules)..where((r) => r.nextRunDate.isSmallerOrEqualValue(millis)))
           .get();
   Future<int> insert(RecurringRulesCompanion c) => into(recurringRules).insert(c);
-  Future<bool> update_(RecurringRulesCompanion c) =>
-      update(recurringRules).replace(c);
+  Future<bool> update_(Insertable<RecurringRule> row) =>
+      update(recurringRules).replace(row);
   Future<int> deleteById(int id) =>
       (delete(recurringRules)..where((r) => r.id.equals(id))).go();
 }

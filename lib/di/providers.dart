@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:expense_budget_manager/core/common/date_formatter.dart';
 import 'package:expense_budget_manager/core/common/money_formatter.dart';
-import 'package:expense_budget_manager/data/local/db/app_database.dart';
+import 'package:expense_budget_manager/data/local/db/app_database.dart' show AppDatabase;
 import 'package:expense_budget_manager/data/local/db/default_seeder.dart';
 import 'package:expense_budget_manager/data/local/preferences/settings_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/account_repository_impl.dart';

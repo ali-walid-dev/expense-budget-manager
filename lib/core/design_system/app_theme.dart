@@ -33,7 +33,7 @@ class AppTheme {
     );
     return base.copyWith(
       textTheme: GoogleFonts.cairoTextTheme(base.textTheme),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: scheme.surfaceContainerLow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
