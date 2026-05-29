@@ -135,6 +135,28 @@ jobs:
           echo "--- Gradle file after patch ---"
           cat "$GRADLE"
 
+          # Force compileSdk 36 on every plugin subproject (file_picker's
+          # transitive dep flutter_plugin_android_lifecycle now requires this).
+          # Appended to android/build.gradle.kts at the project level.
+          ROOT_GRADLE=android/build.gradle.kts
+          if [ ! -f "$ROOT_GRADLE" ]; then ROOT_GRADLE=android/build.gradle; fi
+          if ! grep -q "compileSdkVersion(36)" "$ROOT_GRADLE"; then
+            cat >> "$ROOT_GRADLE" <<'GRADLEEOF'
+
+          subprojects {
+              afterEvaluate {
+                  val androidExtension = extensions.findByName("android")
+                  if (androidExtension is com.android.build.gradle.BaseExtension) {
+                      androidExtension.compileSdkVersion(36)
+                  }
+              }
+          }
+          GRADLEEOF
+          fi
+
+          echo "--- Root gradle file after patch ---"
+          cat "$ROOT_GRADLE"
+
       - name: flutter pub get
         run: flutter pub get
 
