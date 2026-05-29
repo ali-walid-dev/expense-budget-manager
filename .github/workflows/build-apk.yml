@@ -96,6 +96,15 @@ jobs:
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' "$GRADLE"
           sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 24/g' "$GRADLE"
 
+          # Bump compileSdk + targetSdk to 36 — file_picker's transitive dep
+          # flutter_plugin_android_lifecycle requires compileSdk >= 36.
+          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/g' "$GRADLE"
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/g' "$GRADLE"
+          sed -i 's/compileSdkVersion = flutter.compileSdkVersion/compileSdkVersion = 36/g' "$GRADLE"
+          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 36/g' "$GRADLE"
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 36/g' "$GRADLE"
+          sed -i 's/targetSdkVersion = flutter.targetSdkVersion/targetSdkVersion = 36/g' "$GRADLE"
+
           # Append a dependencies block enabling core library desugaring.
           if ! grep -q "desugar_jdk_libs" "$GRADLE"; then
             printf '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")\n}\n' >> "$GRADLE"
