@@ -136,22 +136,30 @@ jobs:
           cat "$GRADLE"
 
           # Force compileSdk 36 on every plugin subproject (file_picker's
-          # transitive dep flutter_plugin_android_lifecycle now requires this).
-          # Appended to android/build.gradle.kts at the project level.
+          # transitive dep flutter_plugin_android_lifecycle requires it). Must
+          # be PREPENDED to android/build.gradle.kts — appending it runs after
+          # subprojects are already evaluated, which Gradle rejects with
+          # "Cannot run Project.afterEvaluate when the project is already evaluated".
           ROOT_GRADLE=android/build.gradle.kts
           if [ ! -f "$ROOT_GRADLE" ]; then ROOT_GRADLE=android/build.gradle; fi
           if ! grep -q "compileSdkVersion(36)" "$ROOT_GRADLE"; then
-            cat >> "$ROOT_GRADLE" <<'GRADLEEOF'
-
-          subprojects {
-              afterEvaluate {
-                  val androidExtension = extensions.findByName("android")
-                  if (androidExtension is com.android.build.gradle.BaseExtension) {
-                      androidExtension.compileSdkVersion(36)
-                  }
-              }
-          }
-          GRADLEEOF
+            python3 - "$ROOT_GRADLE" <<'PYEOF'
+          import sys
+          path = sys.argv[1]
+          original = open(path, encoding='utf-8').read()
+          prefix = (
+              'subprojects {\n'
+              '    afterEvaluate {\n'
+              '        val androidExtension = extensions.findByName("android")\n'
+              '        if (androidExtension is com.android.build.gradle.BaseExtension) {\n'
+              '            androidExtension.compileSdkVersion(36)\n'
+              '        }\n'
+              '    }\n'
+              '}\n\n'
+          )
+          open(path, 'w', encoding='utf-8').write(prefix + original)
+          print('Prepended subprojects compileSdk override.')
+          PYEOF
           fi
 
           echo "--- Root gradle file after patch ---"
