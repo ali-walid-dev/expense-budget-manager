@@ -35,8 +35,9 @@ dependencies:
   infinite_scroll_pagination: ^4.0.0
   dynamic_color: ^1.7.0
 
-  # Background work + notifications
-  workmanager: ^0.5.2
+  # Local notifications (no background worker — workmanager 0.5.2 is broken on
+  # Flutter 3.29+ as it still references removed v1 embedding APIs. Recurring
+  # transactions are caught up on app launch instead.)
   flutter_local_notifications: ^17.2.1+2
   timezone: ^0.9.4
 

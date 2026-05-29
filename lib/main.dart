@@ -10,6 +10,7 @@ import 'package:expense_budget_manager/data/local/preferences/settings_repositor
 import 'package:expense_budget_manager/di/providers.dart';
 import 'package:expense_budget_manager/domain/model/app_settings.dart';
 import 'package:expense_budget_manager/l10n/generated/app_localizations.dart';
+import 'package:expense_budget_manager/data/local/db/app_database.dart';
 import 'package:expense_budget_manager/work/background_worker.dart';
 
 Future<void> main() async {
@@ -20,12 +21,6 @@ Future<void> main() async {
   final settingsRepo = SettingsRepositoryImpl(prefs);
   await settingsRepo.load();
 
-  // Background worker for recurring transactions. Wrapped in try/catch so
-  // failure (e.g. unsupported platform) doesn't kill the app launch.
-  try {
-    await initBackgroundWorker();
-  } catch (_) {}
-
   final container = ProviderContainer(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -34,6 +29,9 @@ Future<void> main() async {
   );
   // Idempotent seed (skips if categories already exist).
   await container.read(seedDataProvider.future);
+
+  // Catch up recurring transactions since the last app open.
+  await runRecurringCatchUpOnLaunch(container.read(appDatabaseProvider));
 
   runApp(UncontrolledProviderScope(
     container: container,
