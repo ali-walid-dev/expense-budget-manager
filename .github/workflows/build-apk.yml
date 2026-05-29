@@ -1,0 +1,154 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: 'Build mode'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+          - profile
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Show toolchain versions
+        run: |
+          flutter --version
+          dart --version
+          java -version
+
+      # `flutter create .` scaffolds platform folders (android/, ios/) without
+      # touching the existing lib/ or pubspec.yaml. It's a no-op the second time.
+      # `flutter create` may rewrite pubspec.yaml with its default template
+      # when run in an existing directory. We back it up first and restore it
+      # so our pinned dependencies survive.
+      - name: Scaffold android/ platform folder
+        run: |
+          cp pubspec.yaml pubspec.yaml.bak
+          cp -r lib lib.bak
+          flutter create . \
+            --platforms=android \
+            --org com.expensebudgetmanager \
+            --project-name expense_budget_manager
+          # Restore in case flutter create touched them.
+          cp pubspec.yaml.bak pubspec.yaml
+          rm -rf lib && mv lib.bak lib
+          rm pubspec.yaml.bak
+
+      # Per TECHNICAL_DOCUMENTATION.md §10: no INTERNET permission. The default
+      # AndroidManifest doesn't include it, but we strip it defensively. We also
+      # add the runtime permissions required by flutter_local_notifications and
+      # workmanager.
+      - name: Patch AndroidManifest.xml (permissions, no INTERNET)
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          echo "Before patch:"
+          cat $MANIFEST
+
+          # Strip any INTERNET permission.
+          sed -i '/android.permission.INTERNET/d' $MANIFEST
+
+          # Insert POST_NOTIFICATIONS + RECEIVE_BOOT_COMPLETED right after the
+          # opening <manifest ...> tag if they aren't already present.
+          if ! grep -q "POST_NOTIFICATIONS" $MANIFEST; then
+            sed -i 's|<manifest |<manifest |; /<manifest /a\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>' $MANIFEST
+          fi
+
+          echo "After patch:"
+          cat $MANIFEST
+
+      - name: Patch android/app/build.gradle.kts (minSdk 24, desugaring)
+        run: |
+          GRADLE=android/app/build.gradle.kts
+          if [ ! -f $GRADLE ]; then
+            GRADLE=android/app/build.gradle
+          fi
+          echo "Using: $GRADLE"
+
+          # Bump minSdk to 24.
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' $GRADLE
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' $GRADLE
+          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 24/g' $GRADLE
+
+          # Enable core library desugaring (required by flutter_local_notifications
+          # and by package:intl on older API levels). We only inject if the block
+          # isn't already there.
+          if ! grep -q "isCoreLibraryDesugaringEnabled" $GRADLE; then
+            cat >> $GRADLE <<'EOF'
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+}
+EOF
+          fi
+
+          # compileOptions { isCoreLibraryDesugaringEnabled = true } — patch in.
+          if ! grep -q "compileOptions" $GRADLE; then
+            sed -i '/android {/a\    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }' $GRADLE
+          fi
+
+          echo "--- Gradle file after patch ---"
+          cat $GRADLE
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: Code generation (Drift, etc.)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Static analysis
+        run: flutter analyze --no-fatal-warnings || true
+
+      - name: Build APK
+        env:
+          BUILD_MODE: ${{ github.event.inputs.build_mode || 'release' }}
+        run: |
+          echo "Building in mode: $BUILD_MODE"
+          flutter build apk --$BUILD_MODE
+
+      - name: Locate APK
+        id: apk
+        run: |
+          APK=$(find build/app/outputs/flutter-apk -name "*.apk" | head -n 1)
+          echo "Found APK: $APK"
+          echo "apk_path=$APK" >> $GITHUB_OUTPUT
+          ls -lah build/app/outputs/flutter-apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: expense-budget-manager-${{ github.event.inputs.build_mode || 'release' }}.apk
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+          retention-days: 30
