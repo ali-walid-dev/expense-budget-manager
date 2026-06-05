@@ -31,6 +31,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
+  Future<TransactionWithDetails?> getById(int id) async {
+    final row = await db.transactionDao.getDetailById(id);
+    return row?.toDomain();
+  }
+
+  @override
   Stream<List<TransactionWithDetails>> search(String query) async* {
     // Trigger refresh on any change to the table.
     await for (final _ in db.transactionDao.watchChangeSignal()) {

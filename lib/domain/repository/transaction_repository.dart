@@ -14,6 +14,11 @@ abstract class TransactionRepository {
     String query = '',
   });
 
+  /// Loads a single transaction (joined with category + account) by id, or
+  /// null if it no longer exists. Used by the edit screen so any transaction
+  /// loads regardless of how old it is.
+  Future<TransactionWithDetails?> getById(int id);
+
   Stream<List<TransactionWithDetails>> search(String query);
 
   Future<int> insert({

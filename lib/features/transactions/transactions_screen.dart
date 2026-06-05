@@ -132,6 +132,16 @@ class _TxScreenState extends ConsumerState<TransactionsScreen> {
                 ) ?? false;
               },
               onDismissed: (_) {
+                // Remove the row from the controller synchronously so the
+                // dismissed widget leaves the tree this frame. Relying on the
+                // async delete + stream-signal refresh left the dismissed
+                // Dismissible in the tree, tripping a framework assertion and
+                // black-screening the list (Bug 2).
+                final list = _pagingController.itemList;
+                if (list != null) {
+                  _pagingController.itemList =
+                      list.where((t) => t.id != item.id).toList();
+                }
                 ref.read(transactionsNotifierProvider.notifier).delete(item.id);
               },
               child: InkWell(

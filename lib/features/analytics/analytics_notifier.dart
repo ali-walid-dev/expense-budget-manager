@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:expense_budget_manager/core/common/amount_codec.dart';
 import 'package:expense_budget_manager/core/common/time_range.dart';
 import 'package:expense_budget_manager/data/mapper/mappers.dart';
 import 'package:expense_budget_manager/di/providers.dart';
@@ -122,7 +123,9 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
             t.type.name,
             t.categoryName ?? '',
             t.accountName,
-            t.amountMinor,
+            // Locale-independent fixed-point string ("55.00"), not raw minor
+            // units ("5500") — Bug 4. Import mirrors this via AmountCodec.decode.
+            AmountCodec.encode(t.amountMinor),
             t.note ?? '',
           ]),
     ];

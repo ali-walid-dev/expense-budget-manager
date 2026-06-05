@@ -177,6 +177,9 @@ jobs:
       - name: Static analysis
         run: flutter analyze --no-fatal-warnings || true
 
+      - name: Run unit tests
+        run: flutter test
+
       - name: Build APK
         env:
           BUILD_MODE: ${{ github.event.inputs.build_mode || 'release' }}

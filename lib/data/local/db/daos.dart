@@ -80,6 +80,26 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
   Future<Transaction?> findById(int id) =>
       (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// Single transaction joined with category + account, for the edit screen.
+  Future<TxJoinedRow?> getDetailById(int id) async {
+    final result = await customSelect(
+      '''
+      SELECT t.*,
+        c.name AS category_name,
+        c.color_hex AS category_color,
+        c.icon_key AS category_icon,
+        a.name AS account_name
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      LEFT JOIN accounts a ON a.id = t.account_id
+      WHERE t.id = ?
+      ''',
+      variables: [Variable.withInt(id)],
+      readsFrom: {transactions, categories, accounts},
+    ).get();
+    return result.isEmpty ? null : TxJoinedRow.fromRow(result.first);
+  }
+
   /// Paged query joined with category + account.
   Future<List<TxJoinedRow>> getPage({
     required int offset,

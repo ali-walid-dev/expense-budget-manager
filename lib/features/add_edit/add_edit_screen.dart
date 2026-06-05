@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:expense_budget_manager/core/common/amount_codec.dart';
 import 'package:expense_budget_manager/core/common/money_formatter.dart';
 import 'package:expense_budget_manager/di/providers.dart';
 import 'package:expense_budget_manager/domain/model/transaction_type.dart';
@@ -22,6 +23,10 @@ class _AddEditState extends ConsumerState<AddEditScreen> {
   final _noteCtrl = TextEditingController();
   final _amountFocus = FocusNode();
   bool _showMore = false;
+  // Guards one-time seeding of the text controllers from loaded state when
+  // editing an existing transaction (Bug 3: fields rendered blank because the
+  // controllers were never populated).
+  bool _seeded = false;
 
   @override
   void initState() {
@@ -79,6 +84,17 @@ class _AddEditState extends ConsumerState<AddEditScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (s) {
+          // Seed the amount + note fields once when editing. Other fields
+          // (category, account, date, type) are already bound to `s`.
+          if (!_seeded) {
+            _seeded = true;
+            if (widget.transactionId != null) {
+              _amountCtrl.text =
+                  s.amountMinor > 0 ? AmountCodec.encode(s.amountMinor) : '';
+              _noteCtrl.text = s.note ?? '';
+              if (s.note != null && s.note!.isNotEmpty) _showMore = true;
+            }
+          }
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [

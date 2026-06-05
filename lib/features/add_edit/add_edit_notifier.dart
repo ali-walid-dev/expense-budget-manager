@@ -79,8 +79,13 @@ class AddEditNotifier extends FamilyAsyncNotifier<AddEditState, int?> {
 
     if (txId != null) {
       final repo = ref.watch(transactionRepositoryProvider);
-      final all = await repo.getPage(offset: 0, limit: 500);
-      final tx = all.firstWhere((t) => t.id == txId);
+      // Load directly by id — the old getPage(limit:500).firstWhere threw a
+      // StateError (blank screen) for any transaction outside the latest 500
+      // (Bug 3).
+      final tx = await repo.getById(txId);
+      if (tx == null) {
+        throw StateError('Transaction $txId no longer exists');
+      }
       return AddEditState(
         id: txId,
         amountMinor: tx.amountMinor,
