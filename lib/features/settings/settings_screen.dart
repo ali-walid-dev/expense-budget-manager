@@ -122,6 +122,18 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l.importTransactions),
             onTap: () => context.push(AppRoutes.importData),
           ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: Text(l.about),
+            subtitle: Text(l.appTitle),
+            onTap: () => showAboutDialog(
+              context: context,
+              applicationName: l.appTitle,
+              applicationVersion: 'v0.1.0',
+              applicationIcon: const FlutterLogo(),
+            ),
+          ),
           const SizedBox(height: 80),
         ],
       ),

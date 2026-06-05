@@ -82,6 +82,10 @@ jobs:
             sed -i 's|<manifest |<manifest |; /<manifest /a\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>' $MANIFEST
           fi
 
+          # Rename the launcher label to the brand (Feature 5). flutter create
+          # sets it from the project name; override every android:label.
+          sed -i 's/android:label="[^"]*"/android:label="Dirhams-دراهم"/g' $MANIFEST
+
           echo "After patch:"
           cat $MANIFEST
 
@@ -167,6 +171,9 @@ jobs:
 
       - name: flutter pub get
         run: flutter pub get
+
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
 
       - name: Code generation (Drift, etc.)
         run: dart run build_runner build --delete-conflicting-outputs

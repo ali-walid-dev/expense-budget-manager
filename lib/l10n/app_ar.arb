@@ -1,6 +1,6 @@
 {
   "@@locale": "ar",
-  "appTitle": "المصروفات",
+  "appTitle": "Dirhams-دراهم",
   "navDashboard": "الرئيسية",
   "navTransactions": "المعاملات",
   "navAnalytics": "التحليلات",
@@ -191,5 +191,6 @@
       "imported": {"type": "int"},
       "skipped": {"type": "int"}
     }
-  }
+  },
+  "about": "حول التطبيق"
 }

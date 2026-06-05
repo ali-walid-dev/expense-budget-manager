@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "Expenses",
+  "appTitle": "Dirhams-دراهم",
   "navDashboard": "Dashboard",
   "navTransactions": "Transactions",
   "navAnalytics": "Analytics",
@@ -191,5 +191,6 @@
       "imported": {"type": "int"},
       "skipped": {"type": "int"}
     }
-  }
+  },
+  "about": "About"
 }
