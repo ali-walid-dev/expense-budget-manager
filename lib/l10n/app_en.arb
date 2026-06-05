@@ -165,5 +165,6 @@
   "customRange": "Custom range",
   "allAccounts": "All accounts",
   "allCategories": "All categories",
-  "noData": "No data"
+  "noData": "No data",
+  "monthlyBreakdown": "Monthly breakdown"
 }

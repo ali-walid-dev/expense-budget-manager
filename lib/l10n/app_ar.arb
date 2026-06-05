@@ -165,5 +165,6 @@
   "customRange": "نطاق مخصص",
   "allAccounts": "كل الحسابات",
   "allCategories": "كل الفئات",
-  "noData": "لا توجد بيانات"
+  "noData": "لا توجد بيانات",
+  "monthlyBreakdown": "تفصيل إنفاق الشهر"
 }
