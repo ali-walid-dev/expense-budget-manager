@@ -82,7 +82,7 @@ void main() {
     // Existing transaction survived with all fields intact.
     final txs = await db.transactionDao.getPage(offset: 0, limit: 10);
     expect(txs, hasLength(1));
-    expect(txs.first.amountMinor, 5500);
+    expect(txs.first.amount, 5500);
     expect(txs.first.note, 'lunch');
     expect(txs.first.categoryName, 'Food');
 
