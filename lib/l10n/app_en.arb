@@ -155,5 +155,15 @@
   "remaining": "Remaining",
   "nextPayment": "Next payment",
   "statusActive": "Active",
-  "statusCompleted": "Completed"
+  "statusCompleted": "Completed",
+  "chartPie": "Pie",
+  "chartDoughnut": "Doughnut",
+  "chartBar": "Bar",
+  "chartHorizontalBar": "Horizontal bar",
+  "chartLine": "Line",
+  "chartArea": "Area",
+  "customRange": "Custom range",
+  "allAccounts": "All accounts",
+  "allCategories": "All categories",
+  "noData": "No data"
 }

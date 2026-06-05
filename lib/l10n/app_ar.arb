@@ -155,5 +155,15 @@
   "remaining": "المتبقي",
   "nextPayment": "القسط التالي",
   "statusActive": "نشط",
-  "statusCompleted": "مكتمل"
+  "statusCompleted": "مكتمل",
+  "chartPie": "دائري",
+  "chartDoughnut": "حلقي",
+  "chartBar": "أعمدة",
+  "chartHorizontalBar": "أعمدة أفقية",
+  "chartLine": "خطي",
+  "chartArea": "مساحي",
+  "customRange": "نطاق مخصص",
+  "allAccounts": "كل الحسابات",
+  "allCategories": "كل الفئات",
+  "noData": "لا توجد بيانات"
 }
