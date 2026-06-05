@@ -112,6 +112,11 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l.budgets),
             onTap: () => context.push(AppRoutes.budgets),
           ),
+          ListTile(
+            leading: const Icon(Icons.credit_card),
+            title: Text(l.debts),
+            onTap: () => context.push(AppRoutes.debts),
+          ),
           const SizedBox(height: 80),
         ],
       ),

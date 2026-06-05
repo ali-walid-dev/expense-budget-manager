@@ -143,5 +143,17 @@
   "name": "الاسم",
   "startDate": "تاريخ البدء",
   "dueDate": "تاريخ الاستحقاق",
-  "deleteBudget": "حذف الميزانية"
+  "deleteBudget": "حذف الميزانية",
+  "debts": "الديون",
+  "noDebtsYet": "لا توجد ديون بعد",
+  "deleteDebt": "حذف الدين",
+  "creditor": "الدائن",
+  "totalAmount": "المبلغ الإجمالي",
+  "monthlyPayment": "القسط الشهري",
+  "total": "الإجمالي",
+  "paid": "المدفوع",
+  "remaining": "المتبقي",
+  "nextPayment": "القسط التالي",
+  "statusActive": "نشط",
+  "statusCompleted": "مكتمل"
 }

@@ -143,5 +143,17 @@
   "name": "Name",
   "startDate": "Start date",
   "dueDate": "Due date",
-  "deleteBudget": "Delete budget"
+  "deleteBudget": "Delete budget",
+  "debts": "Debts",
+  "noDebtsYet": "No debts yet",
+  "deleteDebt": "Delete debt",
+  "creditor": "Creditor",
+  "totalAmount": "Total amount",
+  "monthlyPayment": "Monthly payment",
+  "total": "Total",
+  "paid": "Paid",
+  "remaining": "Remaining",
+  "nextPayment": "Next payment",
+  "statusActive": "Active",
+  "statusCompleted": "Completed"
 }

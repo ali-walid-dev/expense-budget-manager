@@ -9,15 +9,18 @@ import 'package:expense_budget_manager/data/local/preferences/settings_repositor
 import 'package:expense_budget_manager/data/repository/account_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/budget_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/category_repository_impl.dart';
+import 'package:expense_budget_manager/data/repository/debt_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/transaction_repository_impl.dart';
 import 'package:expense_budget_manager/domain/model/account.dart';
 import 'package:expense_budget_manager/domain/model/app_settings.dart';
 import 'package:expense_budget_manager/domain/model/budget.dart';
 import 'package:expense_budget_manager/domain/model/category.dart';
+import 'package:expense_budget_manager/domain/model/debt.dart';
 import 'package:expense_budget_manager/domain/model/transaction_with_details.dart';
 import 'package:expense_budget_manager/domain/repository/account_repository.dart';
 import 'package:expense_budget_manager/domain/repository/budget_repository.dart';
 import 'package:expense_budget_manager/domain/repository/category_repository.dart';
+import 'package:expense_budget_manager/domain/repository/debt_repository.dart';
 import 'package:expense_budget_manager/domain/repository/settings_repository.dart';
 import 'package:expense_budget_manager/domain/repository/transaction_repository.dart';
 
@@ -57,6 +60,10 @@ final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
     ref.watch(transactionRepositoryProvider),
     ref.watch(settingsRepositoryProvider),
   );
+});
+
+final debtRepositoryProvider = Provider<DebtRepository>((ref) {
+  return DebtRepositoryImpl(ref.watch(appDatabaseProvider));
 });
 
 // ─── Settings + Formatters ────────────────────────────────────────────────
@@ -139,6 +146,10 @@ final allCategoriesStreamProvider = StreamProvider<List<Category>>(
 
 final budgetsStreamProvider = StreamProvider<List<BudgetProgress>>(
   (ref) => ref.watch(budgetRepositoryProvider).watchProgress(),
+);
+
+final debtsStreamProvider = StreamProvider<List<DebtProgress>>(
+  (ref) => ref.watch(debtRepositoryProvider).watchAll(),
 );
 
 final transactionStreamSignalProvider = StreamProvider<int>(
