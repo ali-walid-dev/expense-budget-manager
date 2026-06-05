@@ -9,6 +9,7 @@ import 'package:expense_budget_manager/data/local/preferences/settings_repositor
 import 'package:expense_budget_manager/data/repository/account_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/budget_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/category_repository_impl.dart';
+import 'package:expense_budget_manager/data/import/transaction_import_service.dart';
 import 'package:expense_budget_manager/data/repository/debt_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/transaction_repository_impl.dart';
 import 'package:expense_budget_manager/domain/model/account.dart';
@@ -65,6 +66,10 @@ final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
 final debtRepositoryProvider = Provider<DebtRepository>((ref) {
   return DebtRepositoryImpl(ref.watch(appDatabaseProvider));
 });
+
+final transactionImportServiceProvider = Provider<TransactionImportService>(
+  (ref) => TransactionImportService(ref.watch(appDatabaseProvider)),
+);
 
 // ─── Settings + Formatters ────────────────────────────────────────────────
 

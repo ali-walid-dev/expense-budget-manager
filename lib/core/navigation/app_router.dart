@@ -13,6 +13,7 @@ import 'package:expense_budget_manager/features/budgets/budgets_screen.dart';
 import 'package:expense_budget_manager/features/categories/categories_screen.dart';
 import 'package:expense_budget_manager/features/dashboard/dashboard_screen.dart';
 import 'package:expense_budget_manager/features/debts/debts_screen.dart';
+import 'package:expense_budget_manager/features/import/import_screen.dart';
 import 'package:expense_budget_manager/features/onboarding/onboarding_screen.dart';
 import 'package:expense_budget_manager/features/search/search_screen.dart';
 import 'package:expense_budget_manager/features/settings/settings_screen.dart';
@@ -86,6 +87,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.debts,
         builder: (c, s) => const DebtsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.importData,
+        builder: (c, s) => const ImportScreen(),
       ),
       GoRoute(
         path: AppRoutes.search,

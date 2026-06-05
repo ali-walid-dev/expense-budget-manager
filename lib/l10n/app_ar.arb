@@ -166,5 +166,30 @@
   "allAccounts": "كل الحسابات",
   "allCategories": "كل الفئات",
   "noData": "لا توجد بيانات",
-  "monthlyBreakdown": "تفصيل إنفاق الشهر"
+  "monthlyBreakdown": "تفصيل إنفاق الشهر",
+  "importTransactions": "استيراد المعاملات",
+  "pickFile": "اختر ملفاً",
+  "importColumnsHint": "اختر ملف CSV أو XLSX بالأعمدة: id، date، type، category، account، amount، note.",
+  "skipDuplicates": "تجاهل المكرر",
+  "importAll": "استيراد الكل",
+  "duplicate": "مكرر",
+  "importColumnMismatch": "أعمدة الملف لا تطابق صيغة التصدير.",
+  "importUnreadable": "تعذّرت قراءة الملف.",
+  "importUnsupported": "نوع ملف غير مدعوم. استخدم CSV أو XLSX.",
+  "importEmpty": "الملف فارغ.",
+  "validRows": "{count} صالحة",
+  "@validRows": {"placeholders": {"count": {"type": "int"}}},
+  "duplicateRows": "{count} مكررة",
+  "@duplicateRows": {"placeholders": {"count": {"type": "int"}}},
+  "errorRows": "{count} أخطاء",
+  "@errorRows": {"placeholders": {"count": {"type": "int"}}},
+  "rowLabel": "صف {row}",
+  "@rowLabel": {"placeholders": {"row": {"type": "int"}}},
+  "importedToast": "تم استيراد {imported}، وتجاهل {skipped}",
+  "@importedToast": {
+    "placeholders": {
+      "imported": {"type": "int"},
+      "skipped": {"type": "int"}
+    }
+  }
 }

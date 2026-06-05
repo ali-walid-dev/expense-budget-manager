@@ -166,5 +166,30 @@
   "allAccounts": "All accounts",
   "allCategories": "All categories",
   "noData": "No data",
-  "monthlyBreakdown": "Monthly breakdown"
+  "monthlyBreakdown": "Monthly breakdown",
+  "importTransactions": "Import transactions",
+  "pickFile": "Pick a file",
+  "importColumnsHint": "Choose a CSV or XLSX file with columns: id, date, type, category, account, amount, note.",
+  "skipDuplicates": "Skip duplicates",
+  "importAll": "Import all",
+  "duplicate": "Duplicate",
+  "importColumnMismatch": "The file columns don't match the export format.",
+  "importUnreadable": "Could not read the file.",
+  "importUnsupported": "Unsupported file type. Use CSV or XLSX.",
+  "importEmpty": "The file is empty.",
+  "validRows": "{count} valid",
+  "@validRows": {"placeholders": {"count": {"type": "int"}}},
+  "duplicateRows": "{count} duplicates",
+  "@duplicateRows": {"placeholders": {"count": {"type": "int"}}},
+  "errorRows": "{count} errors",
+  "@errorRows": {"placeholders": {"count": {"type": "int"}}},
+  "rowLabel": "Row {row}",
+  "@rowLabel": {"placeholders": {"row": {"type": "int"}}},
+  "importedToast": "Imported {imported}, skipped {skipped}",
+  "@importedToast": {
+    "placeholders": {
+      "imported": {"type": "int"},
+      "skipped": {"type": "int"}
+    }
+  }
 }
