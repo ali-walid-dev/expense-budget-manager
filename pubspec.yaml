@@ -71,11 +71,12 @@ flutter:
 # App launcher icon. The source is a full square icon; for Android adaptive
 # icons the brand teal is used as the background with the artwork as the
 # foreground (the system mask may crop the corners slightly).
+# Only Android is scaffolded in CI (flutter create --platforms=android), so
+# icon generation must target Android only.
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/icon/app_icon.png"
   min_sdk_android: 24
   adaptive_icon_background: "#0F8B6F"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
-  remove_alpha_ios: true
