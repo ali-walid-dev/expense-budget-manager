@@ -326,6 +326,48 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       (delete(budgets)..where((b) => b.id.equals(id))).go();
 }
 
+@DriftAccessor(tables: [Debts, Transactions])
+class DebtDao extends DatabaseAccessor<AppDatabase> with _$DebtDaoMixin {
+  DebtDao(super.db);
+
+  Stream<List<Debt>> watchAll() => (select(debts)
+        ..orderBy([(d) => OrderingTerm(expression: d.id, mode: OrderingMode.desc)]))
+      .watch();
+  Future<List<Debt>> getAll() => select(debts).get();
+  Future<Debt?> findById(int id) =>
+      (select(debts)..where((d) => d.id.equals(id))).getSingleOrNull();
+  Future<int> insert(DebtsCompanion c) => into(debts).insert(c);
+  Future<bool> update_(Insertable<Debt> row) => update(debts).replace(row);
+  Future<int> deleteById(int id) =>
+      (delete(debts)..where((d) => d.id.equals(id))).go();
+
+  /// Total paid so far = sum of the linked payment transactions.
+  Future<int> paidAmount(int debtId) async {
+    final r = await customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE debt_id = ?',
+      variables: [Variable.withInt(debtId)],
+      readsFrom: {transactions},
+    ).getSingle();
+    return r.read<int>('total');
+  }
+
+  /// Idempotency guard: is there already a payment for this debt at [millis]?
+  Future<bool> hasPaymentAt(int debtId, int millis) async {
+    final r = await customSelect(
+      'SELECT COUNT(*) AS c FROM transactions WHERE debt_id = ? AND date_time = ?',
+      variables: [Variable.withInt(debtId), Variable.withInt(millis)],
+      readsFrom: {transactions},
+    ).getSingle();
+    return (r.read<int>('c')) > 0;
+  }
+
+  /// Fires whenever debts change — for reactive UI.
+  Stream<int> watchChangeSignal() =>
+      (selectOnly(debts)..addColumns([debts.id.count()]))
+          .watchSingle()
+          .map((row) => row.read(debts.id.count()) ?? 0);
+}
+
 @DriftAccessor(tables: [RecurringRules])
 class RecurringDao extends DatabaseAccessor<AppDatabase>
     with _$RecurringDaoMixin {
