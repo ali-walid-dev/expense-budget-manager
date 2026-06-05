@@ -134,6 +134,22 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
+  Stream<List<CategorySpend>> watchSpendingByParentCategory(
+      DateTime start, DateTime end) {
+    return db.transactionDao
+        .watchSpendingByParentCategory(
+            start.millisecondsSinceEpoch, end.millisecondsSinceEpoch)
+        .map((rows) => rows
+            .map((r) => CategorySpend(
+                  categoryId: r.categoryId,
+                  categoryName: r.name,
+                  colorHex: r.colorHex,
+                  totalMinor: r.total,
+                ))
+            .toList());
+  }
+
+  @override
   Stream<List<DailySpend>> watchDailyTrend(DateTime start, DateTime end) {
     return db.transactionDao
         .watchDailyTrend(start.millisecondsSinceEpoch, end.millisecondsSinceEpoch)

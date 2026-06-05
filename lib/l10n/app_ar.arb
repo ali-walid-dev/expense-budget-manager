@@ -128,5 +128,16 @@
       "spent": {"type": "String"},
       "total": {"type": "String"}
     }
+  },
+  "subcategory": "تصنيف فرعي",
+  "addSubcategory": "إضافة تصنيف فرعي",
+  "deleteCategory": "حذف الفئة",
+  "reassignChildrenWarning": "سيتم نقل {count} تصنيف فرعي إلى المستوى الأعلى.",
+  "@reassignChildrenWarning": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "uncategorizeWarning": "ستصبح {count} معاملة بدون فئة.",
+  "@uncategorizeWarning": {
+    "placeholders": {"count": {"type": "int"}}
   }
 }

@@ -54,6 +54,11 @@ abstract class TransactionRepository {
   Stream<List<CategorySpend>> watchSpendingByCategory(
       DateTime start, DateTime end);
 
+  /// Like [watchSpendingByCategory] but rolls child-category spend up into the
+  /// parent (Feature 1 reports / Feature 8 breakdown).
+  Stream<List<CategorySpend>> watchSpendingByParentCategory(
+      DateTime start, DateTime end);
+
   Stream<List<DailySpend>> watchDailyTrend(DateTime start, DateTime end);
 
   Future<int> sumSpendInRange({

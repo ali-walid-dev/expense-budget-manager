@@ -221,6 +221,33 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
             )).toList());
   }
 
+  /// Spend rolled up to the **parent** category in a range — descending.
+  /// A transaction on a child category counts toward its parent; a transaction
+  /// on a top-level category counts toward itself. (Feature 1 reports / Feature
+  /// 8 monthly breakdown.)
+  Stream<List<({int categoryId, String name, String colorHex, int total})>>
+      watchSpendingByParentCategory(int startMillis, int endMillis) {
+    return customSelect(
+      '''
+      SELECT p.id AS id, p.name AS name, p.color_hex AS color_hex,
+        COALESCE(SUM(t.amount), 0) AS total
+      FROM transactions t
+      INNER JOIN categories c ON c.id = t.category_id
+      INNER JOIN categories p ON p.id = COALESCE(c.parent_id, c.id)
+      WHERE t.type='expense' AND t.date_time >= ? AND t.date_time < ?
+      GROUP BY p.id
+      ORDER BY total DESC
+      ''',
+      variables: [Variable.withInt(startMillis), Variable.withInt(endMillis)],
+      readsFrom: {transactions, categories},
+    ).watch().map((rows) => rows.map((r) => (
+              categoryId: r.read<int>('id'),
+              name: r.read<String>('name'),
+              colorHex: r.read<String>('color_hex'),
+              total: r.read<int>('total'),
+            )).toList());
+  }
+
   /// Spend per day in a range (for line chart).
   Stream<List<({int dayMillis, int total})>> watchDailyTrend(
       int startMillis, int endMillis) {

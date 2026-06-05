@@ -62,7 +62,8 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
     final txRepo = ref.watch(transactionRepositoryProvider);
     final range = _rangeFor(_period, s.weekStartDay, s.budgetStartDay);
 
-    final byCat = await txRepo.watchSpendingByCategory(range.start, range.end).first;
+    final byCat =
+        await txRepo.watchSpendingByParentCategory(range.start, range.end).first;
     final trend = await txRepo.watchDailyTrend(range.start, range.end).first;
     final totals = await txRepo.watchTotalsInRange(range.start, range.end).first;
 

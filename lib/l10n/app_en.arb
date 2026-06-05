@@ -128,5 +128,16 @@
       "spent": {"type": "String"},
       "total": {"type": "String"}
     }
+  },
+  "subcategory": "Subcategory",
+  "addSubcategory": "Add subcategory",
+  "deleteCategory": "Delete category",
+  "reassignChildrenWarning": "{count} subcategories will be moved to the top level.",
+  "@reassignChildrenWarning": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "uncategorizeWarning": "{count} transactions will become uncategorized.",
+  "@uncategorizeWarning": {
+    "placeholders": {"count": {"type": "int"}}
   }
 }

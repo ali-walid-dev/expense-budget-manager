@@ -142,19 +142,46 @@ class _AddEditState extends ConsumerState<AddEditScreen> {
                   height: 44,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    itemCount: s.categories.length,
+                    itemCount: s.parents.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (c, i) {
-                      final cat = s.categories[i];
-                      final selected = cat.id == s.categoryId;
+                      final cat = s.parents[i];
+                      final selected = cat.id == s.parentCategoryId;
                       return ChoiceChip(
                         label: Text(cat.name),
                         selected: selected,
-                        onSelected: (_) => notifier.setCategory(cat.id),
+                        onSelected: (_) => notifier.setParentCategory(cat.id),
                       );
                     },
                   ),
                 ),
+                // Subcategory picker — only when the chosen parent has children.
+                if (s.childrenOfParent.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(l.subcategory,
+                      style: Theme.of(context).textTheme.labelLarge),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: s.childrenOfParent.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (c, i) {
+                        final cat = s.childrenOfParent[i];
+                        final selected = cat.id == s.childCategoryId;
+                        return ChoiceChip(
+                          label: Text(cat.name),
+                          selected: selected,
+                          // Tapping the selected child deselects it (reverts to
+                          // the parent category).
+                          onSelected: (_) => notifier.setChildCategory(
+                              selected ? null : cat.id),
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
               ],
               // Account
