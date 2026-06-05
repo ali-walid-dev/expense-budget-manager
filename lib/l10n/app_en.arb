@@ -139,5 +139,9 @@
   "uncategorizeWarning": "{count} transactions will become uncategorized.",
   "@uncategorizeWarning": {
     "placeholders": {"count": {"type": "int"}}
-  }
+  },
+  "name": "Name",
+  "startDate": "Start date",
+  "dueDate": "Due date",
+  "deleteBudget": "Delete budget"
 }

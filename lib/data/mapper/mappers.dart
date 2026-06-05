@@ -114,6 +114,7 @@ extension TxJoinedRowMapper on TxJoinedRow {
 extension BudgetMapper on d.Budget {
   Budget toDomain() => Budget(
         id: id,
+        name: name,
         categoryId: categoryId,
         amount: amount,
         period: period,

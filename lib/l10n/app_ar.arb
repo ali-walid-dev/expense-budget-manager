@@ -139,5 +139,9 @@
   "uncategorizeWarning": "ستصبح {count} معاملة بدون فئة.",
   "@uncategorizeWarning": {
     "placeholders": {"count": {"type": "int"}}
-  }
+  },
+  "name": "الاسم",
+  "startDate": "تاريخ البدء",
+  "dueDate": "تاريخ الاستحقاق",
+  "deleteBudget": "حذف الميزانية"
 }
