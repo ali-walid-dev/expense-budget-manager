@@ -12,6 +12,7 @@ import 'package:expense_budget_manager/domain/model/app_settings.dart';
 import 'package:expense_budget_manager/l10n/generated/app_localizations.dart';
 import 'package:expense_budget_manager/data/local/db/app_database.dart';
 import 'package:expense_budget_manager/work/background_worker.dart';
+import 'package:expense_budget_manager/work/notifications.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,19 @@ Future<void> main() async {
 
   // Catch up recurring transactions since the last app open.
   await runRecurringCatchUpOnLaunch(container.read(appDatabaseProvider));
+
+  // Initialize notifications and (re)schedule the user's reminders so they
+  // survive reinstalls / cleared alarms.
+  try {
+    await AppNotifications.instance.init();
+    final reminders = await container.read(reminderRepositoryProvider).getAll();
+    final lang = container.read(settingsProvider).languageTag;
+    final reminderTitle = lang.startsWith('ar') ? 'تذكير' : 'Reminder';
+    await AppNotifications.instance
+        .syncReminders(reminders, title: reminderTitle);
+  } catch (_) {
+    // Notifications are non-critical to app startup.
+  }
 
   runApp(UncontrolledProviderScope(
     container: container,

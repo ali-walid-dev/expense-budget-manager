@@ -19,15 +19,15 @@ import 'package:expense_budget_manager/domain/model/transaction_type.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Accounts, Categories, Transactions, Tags, TransactionTags, Budgets, Debts, RecurringRules],
-  daos: [AccountDao, CategoryDao, TransactionDao, BudgetDao, DebtDao, RecurringDao],
+  tables: [Accounts, Categories, Transactions, Tags, TransactionTags, Budgets, Debts, RecurringRules, Reminders],
+  daos: [AccountDao, CategoryDao, TransactionDao, BudgetDao, DebtDao, RecurringDao, ReminderDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.connect(super.connection);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +51,10 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(transactions, transactions.debtId);
             await customStatement(
                 'CREATE INDEX IF NOT EXISTS idx_tx_debt ON transactions(debt_id)');
+          }
+          // v2 -> v3: reminder notifications.
+          if (from < 3) {
+            await m.createTable(reminders);
           }
         },
         beforeOpen: (details) async {

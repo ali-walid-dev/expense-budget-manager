@@ -79,7 +79,7 @@ jobs:
           # Insert POST_NOTIFICATIONS + RECEIVE_BOOT_COMPLETED right after the
           # opening <manifest ...> tag if they aren't already present.
           if ! grep -q "POST_NOTIFICATIONS" $MANIFEST; then
-            sed -i 's|<manifest |<manifest |; /<manifest /a\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>' $MANIFEST
+            sed -i 's|<manifest |<manifest |; /<manifest /a\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>' $MANIFEST
           fi
 
           # Rename the launcher label to the brand (Feature 5). flutter create

@@ -118,6 +118,11 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => context.push(AppRoutes.debts),
           ),
           ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: Text(l.reminders),
+            onTap: () => context.push(AppRoutes.reminders),
+          ),
+          ListTile(
             leading: const Icon(Icons.file_upload_outlined),
             title: Text(l.importTransactions),
             onTap: () => context.push(AppRoutes.importData),

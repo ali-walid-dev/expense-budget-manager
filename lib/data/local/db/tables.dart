@@ -102,6 +102,21 @@ class Debts extends Table {
   IntColumn get lastGeneratedDate => integer().nullable()();
 }
 
+/// A user-defined reminder notification (daily, or on specific weekdays) at a
+/// chosen time of day.
+class Reminders extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get message => text()();
+  IntColumn get hour => integer()(); // 0-23
+  IntColumn get minute => integer()(); // 0-59
+  // 'daily' | 'weekly'
+  TextColumn get frequency => text().withDefault(const Constant('daily'))();
+  // Comma-separated DateTime weekday ints (1=Mon..7=Sun) for 'weekly'; empty
+  // for 'daily'.
+  TextColumn get weekdays => text().withDefault(const Constant(''))();
+  BoolColumn get enabled => boolean().withDefault(const Constant(true))();
+}
+
 class RecurringRules extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get templateAmount => integer()();

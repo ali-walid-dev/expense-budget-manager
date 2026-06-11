@@ -40,6 +40,8 @@ dependencies:
   # transactions are caught up on app launch instead.)
   flutter_local_notifications: ^17.2.1+2
   timezone: ^0.9.4
+  # >=2.0.0 has the AGP-8 `namespace`; <4.0.0 keeps getLocalTimezone() -> String.
+  flutter_timezone: '>=2.0.0 <4.0.0'
 
   # Files / export / share
   csv: ^6.0.0

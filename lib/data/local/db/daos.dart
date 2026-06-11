@@ -395,6 +395,23 @@ class DebtDao extends DatabaseAccessor<AppDatabase> with _$DebtDaoMixin {
           .map((row) => row.read(debts.id.count()) ?? 0);
 }
 
+@DriftAccessor(tables: [Reminders])
+class ReminderDao extends DatabaseAccessor<AppDatabase> with _$ReminderDaoMixin {
+  ReminderDao(super.db);
+
+  Stream<List<Reminder>> watchAll() => (select(reminders)
+        ..orderBy([(r) => OrderingTerm(expression: r.id, mode: OrderingMode.desc)]))
+      .watch();
+  Future<List<Reminder>> getAll() => select(reminders).get();
+  Future<Reminder?> findById(int id) =>
+      (select(reminders)..where((r) => r.id.equals(id))).getSingleOrNull();
+  Future<int> insert(RemindersCompanion c) => into(reminders).insert(c);
+  Future<bool> update_(Insertable<Reminder> row) =>
+      update(reminders).replace(row);
+  Future<int> deleteById(int id) =>
+      (delete(reminders)..where((r) => r.id.equals(id))).go();
+}
+
 @DriftAccessor(tables: [RecurringRules])
 class RecurringDao extends DatabaseAccessor<AppDatabase>
     with _$RecurringDaoMixin {

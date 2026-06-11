@@ -192,5 +192,13 @@
       "skipped": {"type": "int"}
     }
   },
-  "about": "About"
+  "about": "About",
+  "reminders": "Reminders",
+  "noRemindersYet": "No reminders yet",
+  "reminderMessage": "Message",
+  "time": "Time",
+  "frequencyDaily": "Daily",
+  "frequencyWeekly": "Weekly",
+  "deleteReminder": "Delete reminder",
+  "reminderTitle": "Reminder"
 }

@@ -192,5 +192,13 @@
       "skipped": {"type": "int"}
     }
   },
-  "about": "حول التطبيق"
+  "about": "حول التطبيق",
+  "reminders": "التذكيرات",
+  "noRemindersYet": "لا توجد تذكيرات بعد",
+  "reminderMessage": "الرسالة",
+  "time": "الوقت",
+  "frequencyDaily": "يومي",
+  "frequencyWeekly": "أسبوعي",
+  "deleteReminder": "حذف التذكير",
+  "reminderTitle": "تذكير"
 }

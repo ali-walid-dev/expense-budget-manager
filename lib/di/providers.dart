@@ -11,6 +11,7 @@ import 'package:expense_budget_manager/data/repository/budget_repository_impl.da
 import 'package:expense_budget_manager/data/repository/category_repository_impl.dart';
 import 'package:expense_budget_manager/data/import/transaction_import_service.dart';
 import 'package:expense_budget_manager/data/repository/debt_repository_impl.dart';
+import 'package:expense_budget_manager/data/repository/reminder_repository_impl.dart';
 import 'package:expense_budget_manager/data/repository/transaction_repository_impl.dart';
 import 'package:expense_budget_manager/domain/model/account.dart';
 import 'package:expense_budget_manager/domain/model/app_settings.dart';
@@ -22,6 +23,8 @@ import 'package:expense_budget_manager/domain/repository/account_repository.dart
 import 'package:expense_budget_manager/domain/repository/budget_repository.dart';
 import 'package:expense_budget_manager/domain/repository/category_repository.dart';
 import 'package:expense_budget_manager/domain/repository/debt_repository.dart';
+import 'package:expense_budget_manager/domain/model/reminder.dart';
+import 'package:expense_budget_manager/domain/repository/reminder_repository.dart';
 import 'package:expense_budget_manager/domain/repository/settings_repository.dart';
 import 'package:expense_budget_manager/domain/repository/transaction_repository.dart';
 
@@ -69,6 +72,14 @@ final debtRepositoryProvider = Provider<DebtRepository>((ref) {
 
 final transactionImportServiceProvider = Provider<TransactionImportService>(
   (ref) => TransactionImportService(ref.watch(appDatabaseProvider)),
+);
+
+final reminderRepositoryProvider = Provider<ReminderRepository>(
+  (ref) => ReminderRepositoryImpl(ref.watch(appDatabaseProvider)),
+);
+
+final remindersStreamProvider = StreamProvider<List<Reminder>>(
+  (ref) => ref.watch(reminderRepositoryProvider).watchAll(),
 );
 
 // ─── Settings + Formatters ────────────────────────────────────────────────
