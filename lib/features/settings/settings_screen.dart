@@ -127,6 +127,11 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l.importTransactions),
             onTap: () => context.push(AppRoutes.importData),
           ),
+          ListTile(
+            leading: const Icon(Icons.cloud_sync_outlined),
+            title: Text(l.backupAndSync),
+            onTap: () => context.push(AppRoutes.backup),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.info_outline),

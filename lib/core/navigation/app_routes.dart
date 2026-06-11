@@ -16,5 +16,6 @@ class AppRoutes {
   static const debts = '/debts';
   static const reminders = '/reminders';
   static const importData = '/import';
+  static const backup = '/backup';
   static const search = '/search';
 }

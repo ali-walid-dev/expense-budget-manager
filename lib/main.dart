@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,7 +12,6 @@ import 'package:expense_budget_manager/data/local/preferences/settings_repositor
 import 'package:expense_budget_manager/di/providers.dart';
 import 'package:expense_budget_manager/domain/model/app_settings.dart';
 import 'package:expense_budget_manager/l10n/generated/app_localizations.dart';
-import 'package:expense_budget_manager/data/local/db/app_database.dart';
 import 'package:expense_budget_manager/work/background_worker.dart';
 import 'package:expense_budget_manager/work/notifications.dart';
 
@@ -51,6 +52,11 @@ Future<void> main() async {
     container: container,
     child: const App(),
   ));
+
+  // After the first frame: silent Google re-auth + debounced auto-backup
+  // listener. Fire-and-forget — startup never blocks on the network, and the
+  // app works fully without ever signing in.
+  unawaited(container.read(autoBackupControllerProvider).start());
 }
 
 class App extends ConsumerWidget {

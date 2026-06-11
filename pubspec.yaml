@@ -49,6 +49,18 @@ dependencies:
   share_plus: ^9.0.0
   file_picker: ^8.0.6
 
+  # Google Sign-In + Drive backup (appDataFolder only).
+  # google_sign_in is pinned to 6.x on purpose: this environment builds only in
+  # CI, and the 6.x API (signIn/signInSilently + the googleapis-auth extension)
+  # is the stable, known-good pairing. v7 is a breaking rewrite
+  # (initialize/authenticate/authorizationClient) — migrate deliberately, not
+  # as a side effect of `pub get`.
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  package_info_plus: ^8.0.2
+
   # Misc
   collection: ^1.18.0
   uuid: ^4.4.0
