@@ -84,7 +84,7 @@ jobs:
 
           # Rename the launcher label to the brand (Feature 5). flutter create
           # sets it from the project name; override every android:label.
-          sed -i 's/android:label="[^"]*"/android:label="Dirhams-دراهم"/g' $MANIFEST
+          sed -i 's/android:label="[^"]*"/android:label="قرشين - Qirshayn"/g' $MANIFEST
 
           echo "After patch:"
           cat $MANIFEST
