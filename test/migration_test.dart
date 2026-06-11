@@ -58,7 +58,7 @@ const _v1Schema = <String>[
 ];
 
 void main() {
-  test('v1 -> v2 upgrade keeps existing rows and adds new schema', () async {
+  test('v1 -> current upgrade keeps existing rows and adds new schema', () async {
     final raw = sqlite3.openInMemory();
     for (final stmt in _v1Schema) {
       raw.execute(stmt);
@@ -102,9 +102,14 @@ void main() {
         await db.customSelect('SELECT COUNT(*) AS c FROM debts').getSingle();
     expect(debtCount.read<int>('c'), 0);
 
-    // Schema version is now 2.
+    // v3 reminders table exists.
+    final reminderCount =
+        await db.customSelect('SELECT COUNT(*) AS c FROM reminders').getSingle();
+    expect(reminderCount.read<int>('c'), 0);
+
+    // Schema version is now current (3) — the v1 DB upgrades through all steps.
     final version =
         await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 2);
+    expect(version.read<int>('user_version'), 3);
   });
 }

@@ -96,6 +96,8 @@ class AppNotifications {
           _nextInstanceOfWeekdayTime(wd, r.hour, r.minute),
           details,
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
         );
       }
@@ -107,6 +109,8 @@ class AppNotifications {
         _nextInstanceOfTime(r.hour, r.minute),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
     }
