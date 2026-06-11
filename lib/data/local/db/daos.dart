@@ -80,6 +80,26 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
   Future<Transaction?> findById(int id) =>
       (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// Single transaction joined with category + account, for the edit screen.
+  Future<TxJoinedRow?> getDetailById(int id) async {
+    final result = await customSelect(
+      '''
+      SELECT t.*,
+        c.name AS category_name,
+        c.color_hex AS category_color,
+        c.icon_key AS category_icon,
+        a.name AS account_name
+      FROM transactions t
+      LEFT JOIN categories c ON c.id = t.category_id
+      LEFT JOIN accounts a ON a.id = t.account_id
+      WHERE t.id = ?
+      ''',
+      variables: [Variable.withInt(id)],
+      readsFrom: {transactions, categories, accounts},
+    ).get();
+    return result.isEmpty ? null : TxJoinedRow.fromRow(result.first);
+  }
+
   /// Paged query joined with category + account.
   Future<List<TxJoinedRow>> getPage({
     required int offset,
@@ -201,6 +221,33 @@ class TransactionDao extends DatabaseAccessor<AppDatabase>
             )).toList());
   }
 
+  /// Spend rolled up to the **parent** category in a range — descending.
+  /// A transaction on a child category counts toward its parent; a transaction
+  /// on a top-level category counts toward itself. (Feature 1 reports / Feature
+  /// 8 monthly breakdown.)
+  Stream<List<({int categoryId, String name, String colorHex, int total})>>
+      watchSpendingByParentCategory(int startMillis, int endMillis) {
+    return customSelect(
+      '''
+      SELECT p.id AS id, p.name AS name, p.color_hex AS color_hex,
+        COALESCE(SUM(t.amount), 0) AS total
+      FROM transactions t
+      INNER JOIN categories c ON c.id = t.category_id
+      INNER JOIN categories p ON p.id = COALESCE(c.parent_id, c.id)
+      WHERE t.type='expense' AND t.date_time >= ? AND t.date_time < ?
+      GROUP BY p.id
+      ORDER BY total DESC
+      ''',
+      variables: [Variable.withInt(startMillis), Variable.withInt(endMillis)],
+      readsFrom: {transactions, categories},
+    ).watch().map((rows) => rows.map((r) => (
+              categoryId: r.read<int>('id'),
+              name: r.read<String>('name'),
+              colorHex: r.read<String>('color_hex'),
+              total: r.read<int>('total'),
+            )).toList());
+  }
+
   /// Spend per day in a range (for line chart).
   Stream<List<({int dayMillis, int total})>> watchDailyTrend(
       int startMillis, int endMillis) {
@@ -304,6 +351,65 @@ class BudgetDao extends DatabaseAccessor<AppDatabase> with _$BudgetDaoMixin {
       update(budgets).replace(row);
   Future<int> deleteById(int id) =>
       (delete(budgets)..where((b) => b.id.equals(id))).go();
+}
+
+@DriftAccessor(tables: [Debts, Transactions])
+class DebtDao extends DatabaseAccessor<AppDatabase> with _$DebtDaoMixin {
+  DebtDao(super.db);
+
+  Stream<List<Debt>> watchAll() => (select(debts)
+        ..orderBy([(d) => OrderingTerm(expression: d.id, mode: OrderingMode.desc)]))
+      .watch();
+  Future<List<Debt>> getAll() => select(debts).get();
+  Future<Debt?> findById(int id) =>
+      (select(debts)..where((d) => d.id.equals(id))).getSingleOrNull();
+  Future<int> insert(DebtsCompanion c) => into(debts).insert(c);
+  Future<bool> update_(Insertable<Debt> row) => update(debts).replace(row);
+  Future<int> deleteById(int id) =>
+      (delete(debts)..where((d) => d.id.equals(id))).go();
+
+  /// Total paid so far = sum of the linked payment transactions.
+  Future<int> paidAmount(int debtId) async {
+    final r = await customSelect(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE debt_id = ?',
+      variables: [Variable.withInt(debtId)],
+      readsFrom: {transactions},
+    ).getSingle();
+    return r.read<int>('total');
+  }
+
+  /// Idempotency guard: is there already a payment for this debt at [millis]?
+  Future<bool> hasPaymentAt(int debtId, int millis) async {
+    final r = await customSelect(
+      'SELECT COUNT(*) AS c FROM transactions WHERE debt_id = ? AND date_time = ?',
+      variables: [Variable.withInt(debtId), Variable.withInt(millis)],
+      readsFrom: {transactions},
+    ).getSingle();
+    return (r.read<int>('c')) > 0;
+  }
+
+  /// Fires whenever debts change — for reactive UI.
+  Stream<int> watchChangeSignal() =>
+      (selectOnly(debts)..addColumns([debts.id.count()]))
+          .watchSingle()
+          .map((row) => row.read(debts.id.count()) ?? 0);
+}
+
+@DriftAccessor(tables: [Reminders])
+class ReminderDao extends DatabaseAccessor<AppDatabase> with _$ReminderDaoMixin {
+  ReminderDao(super.db);
+
+  Stream<List<Reminder>> watchAll() => (select(reminders)
+        ..orderBy([(r) => OrderingTerm(expression: r.id, mode: OrderingMode.desc)]))
+      .watch();
+  Future<List<Reminder>> getAll() => select(reminders).get();
+  Future<Reminder?> findById(int id) =>
+      (select(reminders)..where((r) => r.id.equals(id))).getSingleOrNull();
+  Future<int> insert(RemindersCompanion c) => into(reminders).insert(c);
+  Future<bool> update_(Insertable<Reminder> row) =>
+      update(reminders).replace(row);
+  Future<int> deleteById(int id) =>
+      (delete(reminders)..where((r) => r.id.equals(id))).go();
 }
 
 @DriftAccessor(tables: [RecurringRules])

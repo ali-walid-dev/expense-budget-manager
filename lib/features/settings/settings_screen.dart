@@ -112,6 +112,38 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l.budgets),
             onTap: () => context.push(AppRoutes.budgets),
           ),
+          ListTile(
+            leading: const Icon(Icons.credit_card),
+            title: Text(l.debts),
+            onTap: () => context.push(AppRoutes.debts),
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: Text(l.reminders),
+            onTap: () => context.push(AppRoutes.reminders),
+          ),
+          ListTile(
+            leading: const Icon(Icons.file_upload_outlined),
+            title: Text(l.importTransactions),
+            onTap: () => context.push(AppRoutes.importData),
+          ),
+          ListTile(
+            leading: const Icon(Icons.cloud_sync_outlined),
+            title: Text(l.backupAndSync),
+            onTap: () => context.push(AppRoutes.backup),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: Text(l.about),
+            subtitle: Text(l.appTitle),
+            onTap: () => showAboutDialog(
+              context: context,
+              applicationName: l.appTitle,
+              applicationVersion: 'v0.1.0',
+              applicationIcon: const FlutterLogo(),
+            ),
+          ),
           const SizedBox(height: 80),
         ],
       ),

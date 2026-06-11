@@ -31,6 +31,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
+  Future<TransactionWithDetails?> getById(int id) async {
+    final row = await db.transactionDao.getDetailById(id);
+    return row?.toDomain();
+  }
+
+  @override
   Stream<List<TransactionWithDetails>> search(String query) async* {
     // Trigger refresh on any change to the table.
     await for (final _ in db.transactionDao.watchChangeSignal()) {
@@ -117,6 +123,22 @@ class TransactionRepositoryImpl implements TransactionRepository {
   Stream<List<CategorySpend>> watchSpendingByCategory(DateTime start, DateTime end) {
     return db.transactionDao
         .watchSpendingByCategory(start.millisecondsSinceEpoch, end.millisecondsSinceEpoch)
+        .map((rows) => rows
+            .map((r) => CategorySpend(
+                  categoryId: r.categoryId,
+                  categoryName: r.name,
+                  colorHex: r.colorHex,
+                  totalMinor: r.total,
+                ))
+            .toList());
+  }
+
+  @override
+  Stream<List<CategorySpend>> watchSpendingByParentCategory(
+      DateTime start, DateTime end) {
+    return db.transactionDao
+        .watchSpendingByParentCategory(
+            start.millisecondsSinceEpoch, end.millisecondsSinceEpoch)
         .map((rows) => rows
             .map((r) => CategorySpend(
                   categoryId: r.categoryId,

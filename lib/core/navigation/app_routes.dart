@@ -13,5 +13,9 @@ class AppRoutes {
   static const accounts = '/accounts';
   static const accountDetail = '/accounts/:id';
   static const budgets = '/budgets';
+  static const debts = '/debts';
+  static const reminders = '/reminders';
+  static const importData = '/import';
+  static const backup = '/backup';
   static const search = '/search';
 }

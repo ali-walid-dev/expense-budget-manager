@@ -40,11 +40,26 @@ dependencies:
   # transactions are caught up on app launch instead.)
   flutter_local_notifications: ^17.2.1+2
   timezone: ^0.9.4
+  # >=2.0.0 has the AGP-8 `namespace`; <4.0.0 keeps getLocalTimezone() -> String.
+  flutter_timezone: '>=2.0.0 <4.0.0'
 
   # Files / export / share
   csv: ^6.0.0
+  excel: ^4.0.0
   share_plus: ^9.0.0
   file_picker: ^8.0.6
+
+  # Google Sign-In + Drive backup (appDataFolder only).
+  # google_sign_in is pinned to 6.x on purpose: this environment builds only in
+  # CI, and the 6.x API (signIn/signInSilently + the googleapis-auth extension)
+  # is the stable, known-good pairing. v7 is a breaking rewrite
+  # (initialize/authenticate/authorizationClient) — migrate deliberately, not
+  # as a side effect of `pub get`.
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
+  googleapis_auth: ^1.6.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  package_info_plus: ^8.0.2
 
   # Misc
   collection: ^1.18.0
@@ -59,6 +74,23 @@ dev_dependencies:
   build_runner: ^2.4.11
   drift_dev: ^2.18.0
 
+  # Launcher icon generation (Feature 6). Run `dart run flutter_launcher_icons`
+  # after the platform folders are scaffolded.
+  flutter_launcher_icons: ^0.13.1
+
 flutter:
   uses-material-design: true
   generate: true
+
+# App launcher icon. The source is a full square icon; for Android adaptive
+# icons the brand teal is used as the background with the artwork as the
+# foreground (the system mask may crop the corners slightly).
+# Only Android is scaffolded in CI (flutter create --platforms=android), so
+# icon generation must target Android only.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 24
+  adaptive_icon_background: "#0F8B6F"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
