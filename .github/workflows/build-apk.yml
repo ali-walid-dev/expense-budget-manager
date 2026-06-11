@@ -95,6 +95,14 @@ jobs:
           if [ ! -f "$GRADLE" ]; then GRADLE=android/app/build.gradle; fi
           echo "Using: $GRADLE"
 
+          # Relax the strict Kotlin/Java JVM-target consistency check. Some
+          # plugins (e.g. flutter_timezone) compile Kotlin to 1.8 while Java
+          # targets 11; the bytecode is compatible but newer Gradle fails the
+          # validation. `ignore` lets the build proceed.
+          if ! grep -q "kotlin.jvm.target.validation.mode" android/gradle.properties 2>/dev/null; then
+            echo "kotlin.jvm.target.validation.mode=ignore" >> android/gradle.properties
+          fi
+
           # Bump minSdk to 24.
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' "$GRADLE"
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' "$GRADLE"
