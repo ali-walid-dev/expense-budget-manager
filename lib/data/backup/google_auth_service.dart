@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as gauth;
 
+import 'package:expense_budget_manager/data/backup/sign_in_error.dart';
 import 'package:expense_budget_manager/domain/backup/auth_service.dart';
 import 'package:expense_budget_manager/domain/backup/backup_failure.dart';
 
@@ -33,14 +34,13 @@ class GoogleAuthService implements AuthService {
       final account = await _google.signIn();
       return _toUser(account); // null == user cancelled (Android contract)
     } on PlatformException catch (e) {
-      switch (e.code) {
-        case GoogleSignIn.kSignInCanceledError:
-          return null;
-        case GoogleSignIn.kNetworkError:
-          throw NetworkFailure(e.code);
-        default:
-          throw AuthFailure(e.code);
-      }
+      // The Android plugin hides the real Play Services status inside the
+      // message, so classify on both. Reporting every failure as a generic
+      // AuthFailure is what made a signing-configuration problem look like
+      // the account picker closing by itself.
+      final failure = classifySignInError(code: e.code, message: e.message);
+      if (failure is SignInCancelled) return null;
+      throw failure;
     }
   }
 

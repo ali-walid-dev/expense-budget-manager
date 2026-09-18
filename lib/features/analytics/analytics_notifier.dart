@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:csv/csv.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -9,35 +8,37 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:expense_budget_manager/core/common/amount_codec.dart';
 import 'package:expense_budget_manager/core/common/time_range.dart';
-import 'package:expense_budget_manager/data/mapper/mappers.dart';
 import 'package:expense_budget_manager/di/providers.dart';
 import 'package:expense_budget_manager/domain/model/category.dart';
 import 'package:expense_budget_manager/domain/model/transaction_type.dart';
+import 'package:expense_budget_manager/domain/model/transaction_with_details.dart';
 import 'package:expense_budget_manager/domain/repository/transaction_repository.dart';
+import 'package:expense_budget_manager/features/analytics/analytics_math.dart';
 
-enum AnalyticsPeriod { day, week, month, quarter, year, custom, all }
+enum AnalyticsPeriod {
+  day,
+  week,
+  month,
+  specificMonth,
+  quarter,
+  year,
+  custom,
+  all,
+}
 
 enum AnalyticsChartType { pie, doughnut, bar, horizontalBar, line, area }
-
-class CategorySlice {
-  const CategorySlice({
-    required this.categoryName,
-    required this.totalMinor,
-    required this.color,
-  });
-  final String categoryName;
-  final int totalMinor;
-  final Color color;
-}
 
 class AnalyticsState {
   const AnalyticsState({
     required this.period,
     required this.chartType,
+    required this.grouping,
     required this.accountId,
     required this.categoryId,
     required this.customStart,
     required this.customEnd,
+    required this.selectedMonth,
+    required this.range,
     required this.byCategory,
     required this.trend,
     required this.totalExpense,
@@ -46,10 +47,14 @@ class AnalyticsState {
   });
   final AnalyticsPeriod period;
   final AnalyticsChartType chartType;
+  final CategoryGrouping grouping;
   final int? accountId; // null = all accounts
-  final int? categoryId; // null = all parent categories
+  final int? categoryId; // null = all; may be a parent or a subcategory
   final DateTime? customStart;
   final DateTime? customEnd;
+  final DateTime? selectedMonth; // first day of the chosen month
+  /// The range actually in effect, so the screen can show it.
+  final TimeRange range;
   final List<CategorySlice> byCategory;
   final List<DailySpend> trend;
   final int totalExpense;
@@ -66,10 +71,12 @@ class AnalyticsState {
 class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
   AnalyticsPeriod _period = AnalyticsPeriod.month;
   AnalyticsChartType _chartType = AnalyticsChartType.pie;
+  CategoryGrouping _grouping = CategoryGrouping.parent;
   int? _accountId;
   int? _categoryId;
   DateTime? _customStart;
   DateTime? _customEnd;
+  DateTime? _selectedMonth;
 
   @override
   Future<AnalyticsState> build() async {
@@ -80,28 +87,8 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
     final range = _rangeFor(_period, s.weekStartDay, s.budgetStartDay);
 
     final all = await txRepo.getPage(offset: 0, limit: 100000);
+    final inScope = _inScope(all, range, categories);
 
-    // Map every category to its top-level parent for roll-up + filtering.
-    final parentOf = <int, int>{
-      for (final c in categories) c.id: c.parentId ?? c.id,
-    };
-    final parentInfo = <int, Category>{
-      for (final c in categories.where((c) => c.parentId == null)) c.id: c,
-    };
-
-    final inScope = all.where((t) {
-      if (t.dateTime.isBefore(range.start) || !t.dateTime.isBefore(range.end)) {
-        return false;
-      }
-      if (_accountId != null && t.accountId != _accountId) return false;
-      if (_categoryId != null) {
-        final parent = t.categoryId == null ? null : parentOf[t.categoryId];
-        if (parent != _categoryId) return false;
-      }
-      return true;
-    }).toList();
-
-    // Totals.
     var totalExpense = 0;
     var totalIncome = 0;
     for (final t in inScope) {
@@ -109,21 +96,13 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
       if (t.type == TransactionType.income) totalIncome += t.amountMinor;
     }
 
-    // Spend by parent category (expense only), descending.
-    final byParent = <int, int>{};
-    for (final t in inScope.where((t) => t.type == TransactionType.expense)) {
-      if (t.categoryId == null) continue;
-      final parent = parentOf[t.categoryId] ?? t.categoryId!;
-      byParent[parent] = (byParent[parent] ?? 0) + t.amountMinor;
-    }
-    final slices = byParent.entries
-        .map((e) => CategorySlice(
-              categoryName: parentInfo[e.key]?.name ?? '—',
-              totalMinor: e.value,
-              color: parentInfo[e.key]?.color ?? Colors.grey,
-            ))
-        .toList()
-      ..sort((a, b) => b.totalMinor.compareTo(a.totalMinor));
+    final slices = buildCategoryBreakdown(
+      transactions: inScope,
+      categories: categories,
+      grouping: _grouping,
+      // The screen localises direct-on-parent slices; keep the bare name here.
+      directOnParentLabel: (name) => name,
+    );
 
     // Daily expense trend.
     final byDay = <int, int>{};
@@ -142,16 +121,38 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
     return AnalyticsState(
       period: _period,
       chartType: _chartType,
+      grouping: _grouping,
       accountId: _accountId,
       categoryId: _categoryId,
       customStart: _customStart,
       customEnd: _customEnd,
+      selectedMonth: _selectedMonth,
+      range: range,
       byCategory: slices,
       trend: trend,
       totalExpense: totalExpense,
       totalIncome: totalIncome,
-      topCategory: slices.isEmpty ? null : slices.first.categoryName,
+      topCategory: slices.isEmpty ? null : slices.first.name,
     );
+  }
+
+  /// Date range + account + category filtering, shared by the charts and the
+  /// CSV export so the file always matches what is on screen.
+  List<TransactionWithDetails> _inScope(
+    List<TransactionWithDetails> all,
+    TimeRange range,
+    List<Category> categories,
+  ) {
+    final parentOf = parentIndex(categories);
+    return all.where((t) {
+      if (!range.contains(t.dateTime)) return false;
+      if (_accountId != null && t.accountId != _accountId) return false;
+      return categoryMatchesFilter(
+        txCategoryId: t.categoryId,
+        filterId: _categoryId,
+        parentOf: parentOf,
+      );
+    }).toList();
   }
 
   TimeRange _rangeFor(AnalyticsPeriod p, int weekStartDay, int budgetStartDay) {
@@ -163,6 +164,13 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
         return TimeRange.week(now, weekStartDay: weekStartDay);
       case AnalyticsPeriod.month:
         return TimeRange.month(now, monthStartDay: budgetStartDay);
+      case AnalyticsPeriod.specificMonth:
+        final m = _selectedMonth ?? DateTime(now.year, now.month);
+        return specificMonthRange(
+          year: m.year,
+          month: m.month,
+          monthStartDay: budgetStartDay,
+        );
       case AnalyticsPeriod.quarter:
         final s = DateTime(now.year, ((now.month - 1) ~/ 3) * 3 + 1, 1);
         return TimeRange(s, DateTime(s.year, s.month + 3, 1));
@@ -192,8 +200,20 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
     ref.invalidateSelf();
   }
 
+  /// Report on one specific month, e.g. March 2026.
+  void setSpecificMonth(DateTime month) {
+    _selectedMonth = DateTime(month.year, month.month);
+    _period = AnalyticsPeriod.specificMonth;
+    ref.invalidateSelf();
+  }
+
   void setChartType(AnalyticsChartType t) {
     _chartType = t;
+    ref.invalidateSelf();
+  }
+
+  void setGrouping(CategoryGrouping g) {
+    _grouping = g;
     ref.invalidateSelf();
   }
 
@@ -210,24 +230,43 @@ class AnalyticsNotifier extends AsyncNotifier<AnalyticsState> {
   Future<void> exportCsv() async {
     final txRepo = ref.read(transactionRepositoryProvider);
     final s = ref.read(settingsProvider);
+    final categories = await ref.read(allCategoriesStreamProvider.future);
     final range = _rangeFor(_period, s.weekStartDay, s.budgetStartDay);
-    final all = await txRepo.getPage(offset: 0, limit: 100000);
-    final inRange = all.where((t) =>
-        !t.dateTime.isBefore(range.start) && t.dateTime.isBefore(range.end));
 
+    final all = await txRepo.getPage(offset: 0, limit: 100000);
+    // The export mirrors the on-screen filters, not just the date range.
+    final inScope = _inScope(all, range, categories);
+
+    final byId = {for (final c in categories) c.id: c};
     final rows = <List<dynamic>>[
-      ['id', 'date', 'type', 'category', 'account', 'amount', 'note'],
-      ...inRange.map((t) => [
-            t.id,
-            t.dateTime.toIso8601String(),
-            t.type.name,
-            t.categoryName ?? '',
-            t.accountName,
-            // Locale-independent fixed-point string ("55.00"), not raw minor
-            // units ("5500") — Bug 4. Import mirrors this via AmountCodec.decode.
-            AmountCodec.encode(t.amountMinor),
-            t.note ?? '',
-          ]),
+      [
+        'id',
+        'date',
+        'type',
+        'category',
+        'subcategory',
+        'account',
+        'amount',
+        'note',
+      ],
+      ...inScope.map((t) {
+        final category = t.categoryId == null ? null : byId[t.categoryId];
+        final parent =
+            category?.parentId == null ? category : byId[category!.parentId];
+        return [
+          t.id,
+          t.dateTime.toIso8601String(),
+          t.type.name,
+          parent?.name ?? t.categoryName ?? '',
+          // Empty when the transaction sits directly on a top-level category.
+          category != null && category.parentId != null ? category.name : '',
+          t.accountName,
+          // Locale-independent fixed-point string ("55.00"), not raw minor
+          // units ("5500") — Bug 4. Import mirrors this via AmountCodec.decode.
+          AmountCodec.encode(t.amountMinor),
+          t.note ?? '',
+        ];
+      }),
     ];
     final csv = const ListToCsvConverter().convert(rows);
     final dir = await getTemporaryDirectory();

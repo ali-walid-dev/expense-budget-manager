@@ -18,16 +18,24 @@ class BackupScreen extends ConsumerStatefulWidget {
 class _BackupScreenState extends ConsumerState<BackupScreen> {
   /// Raw exceptions never reach the user — every failure maps to a localized
   /// message.
-  String _failureText(AppLocalizations l, Object e) => switch (e) {
-        NetworkFailure() => l.errNetwork,
-        AuthFailure() => l.errAuth,
-        SignInCancelled() => l.signInCancelled,
-        QuotaFailure() => l.errQuota,
-        CorruptBackupFailure() => l.errCorruptBackup,
-        UnsupportedVersionFailure() => l.errUnsupportedBackup,
-        NoBackupFailure() => l.errNoBackup,
-        _ => l.errUnknown,
-      };
+  String _failureText(AppLocalizations l, Object e) {
+    final text = switch (e) {
+      NetworkFailure() => l.errNetwork,
+      SignInConfigurationFailure() => l.errSignInConfig,
+      ConsentDeniedFailure() => l.errConsentDenied,
+      AuthFailure() => l.errAuth,
+      SignInCancelled() => l.signInCancelled,
+      QuotaFailure() => l.errQuota,
+      CorruptBackupFailure() => l.errCorruptBackup,
+      UnsupportedVersionFailure() => l.errUnsupportedBackup,
+      NoBackupFailure() => l.errNoBackup,
+      _ => l.errUnknown,
+    };
+    // Keep the raw platform code visible: without it a sign-in failure is
+    // undiagnosable, and GOOGLE_SIGNIN_SETUP.md maps codes to fixes.
+    final detail = e is BackupFailure ? e.detail : null;
+    return detail == null ? text : l.errDetail(text, detail);
+  }
 
   void _toast(String message) {
     if (!mounted) return;

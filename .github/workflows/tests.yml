@@ -1,0 +1,46 @@
+name: Tests
+
+# The APK workflow only runs on main/master, so feature branches had no
+# verification at all. This runs the analyzer and the unit tests on every
+# branch, which is where a regression is cheapest to find.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Show toolchain versions
+        run: flutter --version
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      # Generated sources are gitignored, so both steps are required before
+      # anything will compile.
+      - name: Code generation (Drift)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Static analysis
+        run: flutter analyze --no-fatal-warnings
+
+      - name: Run unit tests
+        run: flutter test --reporter expanded

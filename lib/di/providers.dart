@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:expense_budget_manager/core/common/date_formatter.dart';
 import 'package:expense_budget_manager/core/common/money_formatter.dart';
 import 'package:expense_budget_manager/data/backup/backup_preferences.dart';
+import 'package:expense_budget_manager/data/backup/local_backup_files.dart';
+import 'package:expense_budget_manager/data/backup/local_backup_repository.dart';
 import 'package:expense_budget_manager/data/backup/backup_repository_impl.dart';
 import 'package:expense_budget_manager/data/backup/google_auth_service.dart';
 import 'package:expense_budget_manager/data/backup/google_drive_backup_client.dart';
@@ -117,14 +119,30 @@ final backupRepositoryProvider = Provider<BackupRepository>((ref) {
     settingsStore:
         AppSettingsSnapshotStore(ref.watch(settingsRepositoryProvider)),
     prefs: ref.watch(backupPreferencesProvider),
-    appVersion: () async {
-      try {
-        final info = await PackageInfo.fromPlatform();
-        return '${info.version}+${info.buildNumber}';
-      } catch (_) {
-        return 'unknown';
-      }
-    },
+    appVersion: _appVersionString,
+  );
+});
+
+/// Shared by the Drive backup and the local export/import, so a file
+/// exported to disk is interchangeable with a cloud backup.
+Future<String> _appVersionString() async {
+  try {
+    final info = await PackageInfo.fromPlatform();
+    return '${info.version}+${info.buildNumber}';
+  } catch (_) {
+    return 'unknown';
+  }
+}
+
+final localBackupFilesProvider =
+    Provider<LocalBackupFiles>((ref) => const LocalBackupFiles());
+
+final localBackupRepositoryProvider = Provider<LocalBackupRepository>((ref) {
+  return LocalBackupRepositoryImpl(
+    db: ref.watch(appDatabaseProvider),
+    settingsStore:
+        AppSettingsSnapshotStore(ref.watch(settingsRepositoryProvider)),
+    appVersion: _appVersionString,
   );
 });
 

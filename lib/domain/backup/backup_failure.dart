@@ -59,3 +59,18 @@ class UnknownBackupFailure extends BackupFailure {
   @override
   String toString() => 'UnknownBackupFailure($cause)';
 }
+
+/// Google rejected the app itself, not the account: the APK's signing SHA-1 +
+/// package name are not registered as an Android OAuth client
+/// (`DEVELOPER_ERROR`, status 10). The account picker opens and then fails, so
+/// this is reported separately from a generic [AuthFailure] — the fix is in the
+/// Google Cloud Console, not in the app. See GOOGLE_SIGNIN_SETUP.md.
+class SignInConfigurationFailure extends BackupFailure {
+  const SignInConfigurationFailure([super.detail]);
+}
+
+/// The OAuth consent screen refused the account — typically a project still in
+/// *Testing* mode with the account missing from its Test users list.
+class ConsentDeniedFailure extends BackupFailure {
+  const ConsentDeniedFailure([super.detail]);
+}

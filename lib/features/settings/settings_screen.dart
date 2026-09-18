@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:expense_budget_manager/core/common/money_formatter.dart';
 import 'package:expense_budget_manager/core/navigation/app_routes.dart';
 import 'package:expense_budget_manager/di/providers.dart';
+import 'package:expense_budget_manager/features/settings/export_import_tiles.dart';
 import 'package:expense_budget_manager/domain/model/app_settings.dart';
 import 'package:expense_budget_manager/l10n/generated/app_localizations.dart';
 
@@ -132,6 +133,7 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l.backupAndSync),
             onTap: () => context.push(AppRoutes.backup),
           ),
+          const ExportImportTiles(),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.info_outline),
