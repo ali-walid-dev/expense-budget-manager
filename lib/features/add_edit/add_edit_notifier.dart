@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:expense_budget_manager/di/providers.dart';
@@ -13,6 +14,7 @@ class AddEditState {
     required this.type,
     required this.accountId,
     required this.toAccountId,
+    required this.parentCategoryId,
     required this.categoryId,
     required this.dateTime,
     required this.note,
@@ -27,6 +29,10 @@ class AddEditState {
   final TransactionType type;
   final int? accountId;
   final int? toAccountId;
+  // The chosen top-level (parent) category. Required for non-transfers.
+  final int? parentCategoryId;
+  // The category actually saved on the transaction: the child when one is
+  // chosen, otherwise the parent. Reports roll children up to the parent.
   final int? categoryId;
   final DateTime dateTime;
   final String? note;
@@ -35,11 +41,24 @@ class AddEditState {
   final List<Account> accounts;
   final List<Category> categories;
 
+  /// Top-level categories of the current type.
+  List<Category> get parents =>
+      categories.where((c) => c.parentId == null).toList();
+
+  /// Children of the chosen parent (empty if none / no parent chosen).
+  List<Category> get childrenOfParent => parentCategoryId == null
+      ? const []
+      : categories.where((c) => c.parentId == parentCategoryId).toList();
+
+  /// The chosen child id, or null when the parent itself is the category.
+  int? get childCategoryId =>
+      (categoryId != null && categoryId != parentCategoryId) ? categoryId : null;
+
   bool get canSave =>
       amountMinor > 0 &&
       accountId != null &&
       (type != TransactionType.transfer
-          ? categoryId != null
+          ? parentCategoryId != null
           : toAccountId != null && toAccountId != accountId);
 
   AddEditState copyWith({
@@ -47,9 +66,10 @@ class AddEditState {
     TransactionType? type,
     int? accountId,
     int? toAccountId,
-    int? categoryId,
+    Object? parentCategoryId = _sentinel,
+    Object? categoryId = _sentinel,
     DateTime? dateTime,
-    String? note,
+    Object? note = _sentinel,
     bool? recurring,
     RecurringInterval? recurringInterval,
     List<Account>? accounts,
@@ -61,14 +81,20 @@ class AddEditState {
         type: type ?? this.type,
         accountId: accountId ?? this.accountId,
         toAccountId: toAccountId ?? this.toAccountId,
-        categoryId: categoryId ?? this.categoryId,
+        parentCategoryId: parentCategoryId == _sentinel
+            ? this.parentCategoryId
+            : parentCategoryId as int?,
+        categoryId:
+            categoryId == _sentinel ? this.categoryId : categoryId as int?,
         dateTime: dateTime ?? this.dateTime,
-        note: note ?? this.note,
+        note: note == _sentinel ? this.note : note as String?,
         recurring: recurring ?? this.recurring,
         recurringInterval: recurringInterval ?? this.recurringInterval,
         accounts: accounts ?? this.accounts,
         categories: categories ?? this.categories,
       );
+
+  static const _sentinel = Object();
 }
 
 class AddEditNotifier extends FamilyAsyncNotifier<AddEditState, int?> {
@@ -79,21 +105,28 @@ class AddEditNotifier extends FamilyAsyncNotifier<AddEditState, int?> {
 
     if (txId != null) {
       final repo = ref.watch(transactionRepositoryProvider);
-      final all = await repo.getPage(offset: 0, limit: 500);
-      final tx = all.firstWhere((t) => t.id == txId);
+      // Load directly by id — the old getPage(limit:500).firstWhere threw a
+      // StateError (blank screen) for any transaction outside the latest 500
+      // (Bug 3).
+      final tx = await repo.getById(txId);
+      if (tx == null) {
+        throw StateError('Transaction $txId no longer exists');
+      }
+      final scoped = _filterCategories(categories, tx.type);
       return AddEditState(
         id: txId,
         amountMinor: tx.amountMinor,
         type: tx.type,
         accountId: tx.accountId,
         toAccountId: tx.toAccountId,
+        parentCategoryId: _parentOf(scoped, tx.categoryId),
         categoryId: tx.categoryId,
         dateTime: tx.dateTime,
         note: tx.note,
         recurring: false,
         recurringInterval: null,
         accounts: accounts,
-        categories: _filterCategories(categories, tx.type),
+        categories: scoped,
       );
     }
 
@@ -103,6 +136,7 @@ class AddEditNotifier extends FamilyAsyncNotifier<AddEditState, int?> {
       type: TransactionType.expense,
       accountId: accounts.isNotEmpty ? accounts.first.id : null,
       toAccountId: null,
+      parentCategoryId: null,
       categoryId: null,
       dateTime: DateTime.now(),
       note: null,
@@ -120,51 +154,56 @@ class AddEditNotifier extends FamilyAsyncNotifier<AddEditState, int?> {
     return all.where((c) => c.type == wanted).toList();
   }
 
+  /// Resolves the parent of a saved category id: if it's a child, its parent;
+  /// if it's already top-level, itself; null if unset/unknown.
+  int? _parentOf(List<Category> scoped, int? categoryId) {
+    if (categoryId == null) return null;
+    final match = scoped.where((c) => c.id == categoryId).firstOrNull;
+    if (match == null) return null;
+    return match.parentId ?? match.id;
+  }
+
   Future<void> init() async {
     // build() does the work — keep for ergonomics if needed later.
   }
 
-  void setAmount(int minor) => state = AsyncData(state.value!.copyWith(amountMinor: minor));
+  void setAmount(int minor) =>
+      state = AsyncData(state.value!.copyWith(amountMinor: minor));
+
   void setType(TransactionType t) {
-    final s = state.value!;
     final all = ref.read(allCategoriesStreamProvider).valueOrNull ?? <Category>[];
-    state = AsyncData(AddEditState(
-      id: s.id,
-      amountMinor: s.amountMinor,
+    state = AsyncData(state.value!.copyWith(
       type: t,
-      accountId: s.accountId,
-      toAccountId: s.toAccountId,
+      parentCategoryId: null,
       categoryId: null,
-      dateTime: s.dateTime,
-      note: s.note,
-      recurring: s.recurring,
-      recurringInterval: s.recurringInterval,
-      accounts: s.accounts,
       categories: _filterCategories(all, t),
     ));
   }
-  void setCategory(int? id) {
-    final s = state.value!;
-    state = AsyncData(AddEditState(
-      id: s.id, amountMinor: s.amountMinor, type: s.type,
-      accountId: s.accountId, toAccountId: s.toAccountId, categoryId: id,
-      dateTime: s.dateTime, note: s.note, recurring: s.recurring,
-      recurringInterval: s.recurringInterval, accounts: s.accounts,
-      categories: s.categories,
+
+  /// Choose the (required) top-level category. Defaults the saved category to
+  /// the parent and clears any previously chosen child.
+  void setParentCategory(int? id) {
+    state = AsyncData(state.value!.copyWith(
+      parentCategoryId: id,
+      categoryId: id,
     ));
   }
-  void setAccount(int? id) => state = AsyncData(state.value!.copyWith(accountId: id));
-  void setToAccount(int? id) {
+
+  /// Choose an optional child. Passing null reverts the saved category to the
+  /// parent.
+  void setChildCategory(int? id) {
     final s = state.value!;
-    state = AsyncData(AddEditState(
-      id: s.id, amountMinor: s.amountMinor, type: s.type,
-      accountId: s.accountId, toAccountId: id, categoryId: s.categoryId,
-      dateTime: s.dateTime, note: s.note, recurring: s.recurring,
-      recurringInterval: s.recurringInterval, accounts: s.accounts,
-      categories: s.categories,
+    state = AsyncData(s.copyWith(
+      categoryId: id ?? s.parentCategoryId,
     ));
   }
-  void setDate(DateTime dt) => state = AsyncData(state.value!.copyWith(dateTime: dt));
+
+  void setAccount(int? id) =>
+      state = AsyncData(state.value!.copyWith(accountId: id));
+  void setToAccount(int? id) =>
+      state = AsyncData(state.value!.copyWith(toAccountId: id));
+  void setDate(DateTime dt) =>
+      state = AsyncData(state.value!.copyWith(dateTime: dt));
   void setNote(String? n) => state = AsyncData(state.value!.copyWith(note: n));
   void setRecurring(bool v) => state = AsyncData(state.value!.copyWith(
         recurring: v,
@@ -183,7 +222,7 @@ class AddEditNotifier extends FamilyAsyncNotifier<AddEditState, int?> {
         type: s.type,
         accountId: s.accountId!,
         toAccountId: s.toAccountId,
-        categoryId: s.categoryId,
+        categoryId: s.type == TransactionType.transfer ? null : s.categoryId,
         dateTime: s.dateTime,
         note: s.note,
       );
@@ -194,7 +233,7 @@ class AddEditNotifier extends FamilyAsyncNotifier<AddEditState, int?> {
         type: s.type,
         accountId: s.accountId!,
         toAccountId: s.toAccountId,
-        categoryId: s.categoryId,
+        categoryId: s.type == TransactionType.transfer ? null : s.categoryId,
         dateTime: s.dateTime,
         note: s.note,
       );

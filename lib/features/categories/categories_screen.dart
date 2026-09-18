@@ -33,9 +33,20 @@ class CategoriesScreen extends ConsumerWidget {
                 ),
                 title: Text(node.category.name),
                 subtitle: Text(node.category.type.name),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => _showEdit(context, repo, node.category),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => _showEdit(context, repo, node.category),
+                    ),
+                    if (!node.category.isDefault)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () =>
+                            _deleteCategory(context, ref, node.category, l),
+                      ),
+                  ],
                 ),
                 children: [
                   for (final child in node.children)
@@ -51,14 +62,15 @@ class CategoriesScreen extends ConsumerWidget {
                           ? null
                           : IconButton(
                               icon: const Icon(Icons.delete_outline),
-                              onPressed: () => repo.delete(child.id),
+                              onPressed: () =>
+                                  _deleteCategory(context, ref, child, l),
                             ),
                       onTap: () => _showEdit(context, repo, child),
                     ),
                   ListTile(
                     contentPadding: const EdgeInsetsDirectional.only(start: 56),
                     leading: const Icon(Icons.add),
-                    title: Text(l.addTransaction),
+                    title: Text(l.addSubcategory),
                     onTap: () => _showEdit(context, repo, null, parentId: node.category.id, type: node.category.type),
                   ),
                 ],
@@ -75,6 +87,42 @@ class CategoriesScreen extends ConsumerWidget {
       isScrollControlled: true,
       builder: (_) => _CategoryEditSheet(existing: existing, parentId: parentId, type: type),
     );
+  }
+
+  /// Delete policy (Feature 1): a parent's subcategories are reassigned to top
+  /// level (never deleted) so their transactions survive; transactions on the
+  /// deleted category itself become uncategorized. The dialog spells out both
+  /// effects before confirming.
+  Future<void> _deleteCategory(BuildContext context, WidgetRef ref,
+      dom.Category cat, AppLocalizations l) async {
+    final repo = ref.read(categoryRepositoryProvider);
+    final impact = await repo.deleteImpact(cat.id);
+    if (!context.mounted) return;
+    final lines = <String>[l.deleteIrreversible];
+    if (impact.childCount > 0) {
+      lines.add(l.reassignChildrenWarning(impact.childCount));
+    }
+    if (impact.transactionCount > 0) {
+      lines.add(l.uncategorizeWarning(impact.transactionCount));
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l.deleteCategory),
+        content: Text(lines.join('\n\n')),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l.cancel)),
+          FilledButton.tonal(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.delete)),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await repo.delete(cat.id, reassignChildrenToTopLevel: true);
+    }
   }
 }
 

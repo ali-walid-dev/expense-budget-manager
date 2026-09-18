@@ -5,6 +5,8 @@ import 'package:expense_budget_manager/data/local/db/daos.dart' show TxJoinedRow
 import 'package:expense_budget_manager/domain/model/account.dart';
 import 'package:expense_budget_manager/domain/model/budget.dart';
 import 'package:expense_budget_manager/domain/model/category.dart';
+import 'package:expense_budget_manager/domain/model/debt.dart';
+import 'package:expense_budget_manager/domain/model/reminder.dart';
 import 'package:expense_budget_manager/domain/model/recurring_rule.dart';
 import 'package:expense_budget_manager/domain/model/transaction.dart';
 import 'package:expense_budget_manager/domain/model/transaction_with_details.dart';
@@ -114,12 +116,53 @@ extension TxJoinedRowMapper on TxJoinedRow {
 extension BudgetMapper on d.Budget {
   Budget toDomain() => Budget(
         id: id,
+        name: name,
         categoryId: categoryId,
         amount: amount,
         period: period,
         startDate: startDate == null ? null : DateTime.fromMillisecondsSinceEpoch(startDate!),
         endDate: endDate == null ? null : DateTime.fromMillisecondsSinceEpoch(endDate!),
         carryOver: carryOver,
+      );
+}
+
+extension DebtMapper on d.Debt {
+  Debt toDomain() => Debt(
+        id: id,
+        name: name,
+        creditor: creditor,
+        totalAmount: totalAmount,
+        monthlyPayment: monthlyPayment,
+        startDate: DateTime.fromMillisecondsSinceEpoch(startDate),
+        dueDate:
+            dueDate == null ? null : DateTime.fromMillisecondsSinceEpoch(dueDate!),
+        note: note,
+        accountId: accountId,
+        categoryId: categoryId,
+        status: status == 'completed' ? DebtStatus.completed : DebtStatus.active,
+        lastGeneratedDate: lastGeneratedDate == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(lastGeneratedDate!),
+      );
+}
+
+extension ReminderMapper on d.Reminder {
+  Reminder toDomain() => Reminder(
+        id: id,
+        message: message,
+        hour: hour,
+        minute: minute,
+        frequency: frequency == 'weekly'
+            ? ReminderFrequency.weekly
+            : ReminderFrequency.daily,
+        weekdays: weekdays.isEmpty
+            ? const []
+            : weekdays
+                .split(',')
+                .where((s) => s.isNotEmpty)
+                .map(int.parse)
+                .toList(),
+        enabled: enabled,
       );
 }
 

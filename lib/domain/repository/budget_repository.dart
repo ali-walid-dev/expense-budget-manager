@@ -6,6 +6,7 @@ abstract class BudgetRepository {
 
   Future<int> upsert({
     int? id,
+    String? name,
     required int amountMinor,
     required BudgetPeriod period,
     int? categoryId,

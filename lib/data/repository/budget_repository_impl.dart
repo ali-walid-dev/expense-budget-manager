@@ -90,6 +90,7 @@ class BudgetRepositoryImpl implements BudgetRepository {
   @override
   Future<int> upsert({
     int? id,
+    String? name,
     required int amountMinor,
     required BudgetPeriod period,
     int? categoryId,
@@ -99,6 +100,7 @@ class BudgetRepositoryImpl implements BudgetRepository {
   }) async {
     if (id == null) {
       return db.budgetDao.insert(d.BudgetsCompanion.insert(
+        name: Value(name),
         categoryId: Value(categoryId),
         amount: amountMinor,
         period: period,
@@ -109,6 +111,7 @@ class BudgetRepositoryImpl implements BudgetRepository {
     } else {
       final existing = await (db.select(db.budgets)..where((b) => b.id.equals(id))).getSingle();
       await db.budgetDao.update_(existing.copyWith(
+        name: Value(name),
         categoryId: Value(categoryId),
         amount: amountMinor,
         period: period,

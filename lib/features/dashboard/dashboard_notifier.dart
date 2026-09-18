@@ -1,8 +1,23 @@
+import 'package:flutter/material.dart' show Color;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:expense_budget_manager/core/common/time_range.dart';
+import 'package:expense_budget_manager/data/mapper/mappers.dart';
 import 'package:expense_budget_manager/di/providers.dart';
 import 'package:expense_budget_manager/domain/model/transaction_with_details.dart';
+
+class CategoryBreakdownItem {
+  const CategoryBreakdownItem({
+    required this.name,
+    required this.totalMinor,
+    required this.fraction,
+    required this.color,
+  });
+  final String name;
+  final int totalMinor;
+  final double fraction; // 0..1 share of categorized monthly spend
+  final Color color;
+}
 
 class DashboardState {
   const DashboardState({
@@ -14,6 +29,7 @@ class DashboardState {
     required this.momDeltaPct,
     required this.budgetCount,
     required this.topCategoryName,
+    required this.breakdown,
     required this.recent,
   });
 
@@ -25,6 +41,7 @@ class DashboardState {
   final int momDeltaPct;
   final int budgetCount;
   final String? topCategoryName;
+  final List<CategoryBreakdownItem> breakdown;
   final List<TransactionWithDetails> recent;
 }
 
@@ -57,8 +74,21 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
     final remaining = overall.isEmpty ? 0 : overall.first.remaining;
     final progress = overall.isEmpty ? null : overall.first.progress;
 
-    final topCategory = await txRepo.watchSpendingByCategory(thisMonth.start, thisMonth.end).first;
-    final topName = topCategory.isEmpty ? null : topCategory.first.categoryName;
+    // Monthly breakdown by parent category (children rolled up), descending.
+    final byParent = await txRepo
+        .watchSpendingByParentCategory(thisMonth.start, thisMonth.end)
+        .first;
+    final breakdownTotal = byParent.fold<int>(0, (a, b) => a + b.totalMinor);
+    final breakdown = byParent
+        .map((e) => CategoryBreakdownItem(
+              name: e.categoryName,
+              totalMinor: e.totalMinor,
+              fraction:
+                  breakdownTotal <= 0 ? 0 : e.totalMinor / breakdownTotal,
+              color: hexToColor(e.colorHex),
+            ))
+        .toList();
+    final topName = byParent.isEmpty ? null : byParent.first.categoryName;
 
     final recent = await txRepo.watchRecent(8).first;
 
@@ -71,6 +101,7 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
       momDeltaPct: mom,
       budgetCount: budgets.length,
       topCategoryName: topName,
+      breakdown: breakdown,
       recent: recent,
     );
   }

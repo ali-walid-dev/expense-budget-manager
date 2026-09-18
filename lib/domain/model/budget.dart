@@ -3,6 +3,7 @@ enum BudgetPeriod { weekly, monthly, custom }
 class Budget {
   const Budget({
     required this.id,
+    required this.name,
     required this.categoryId,
     required this.amount,
     required this.period,
@@ -12,6 +13,7 @@ class Budget {
   });
 
   final int id;
+  final String? name;
   final int? categoryId;
   final int amount;
   final BudgetPeriod period;

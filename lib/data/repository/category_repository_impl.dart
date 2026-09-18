@@ -63,9 +63,40 @@ class CategoryRepositoryImpl implements CategoryRepository {
   }
 
   @override
-  Future<void> delete(int id) async {
-    final row = await (db.select(db.categories)..where((c) => c.id.equals(id))).getSingleOrNull();
+  Future<({int childCount, int transactionCount})> deleteImpact(int id) async {
+    final childRows =
+        await (db.select(db.categories)..where((c) => c.parentId.equals(id)))
+            .get();
+    final txRow = await db.customSelect(
+      'SELECT COUNT(*) AS c FROM transactions WHERE category_id = ?',
+      variables: [Variable.withInt(id)],
+      readsFrom: {db.transactions},
+    ).getSingle();
+    return (
+      childCount: childRows.length,
+      transactionCount: txRow.read<int>('c'),
+    );
+  }
+
+  @override
+  Future<void> delete(int id, {bool reassignChildrenToTopLevel = false}) async {
+    final row = await (db.select(db.categories)..where((c) => c.id.equals(id)))
+        .getSingleOrNull();
     if (row == null || row.isDefault) return;
+
+    final impact = await deleteImpact(id);
+    if (impact.childCount > 0) {
+      if (!reassignChildrenToTopLevel) {
+        throw StateError(
+            'Category $id has ${impact.childCount} subcategories; '
+            'pass reassignChildrenToTopLevel to detach them.');
+      }
+      // Detach children to top level (parent_id = null) so they and their
+      // transactions survive.
+      await (db.update(db.categories)..where((c) => c.parentId.equals(id)))
+          .write(const d.CategoriesCompanion(parentId: Value(null)));
+    }
+    // Transactions on this category have category_id set null by the FK.
     await db.categoryDao.deleteById(id);
   }
 }

@@ -6,12 +6,16 @@ import 'package:expense_budget_manager/core/navigation/app_routes.dart';
 import 'package:expense_budget_manager/core/navigation/app_scaffold.dart';
 import 'package:expense_budget_manager/di/providers.dart';
 import 'package:expense_budget_manager/features/accounts/account_detail_screen.dart';
+import 'package:expense_budget_manager/features/backup/backup_screen.dart';
 import 'package:expense_budget_manager/features/accounts/accounts_screen.dart';
 import 'package:expense_budget_manager/features/add_edit/add_edit_screen.dart';
 import 'package:expense_budget_manager/features/analytics/analytics_screen.dart';
 import 'package:expense_budget_manager/features/budgets/budgets_screen.dart';
 import 'package:expense_budget_manager/features/categories/categories_screen.dart';
 import 'package:expense_budget_manager/features/dashboard/dashboard_screen.dart';
+import 'package:expense_budget_manager/features/debts/debts_screen.dart';
+import 'package:expense_budget_manager/features/import/import_screen.dart';
+import 'package:expense_budget_manager/features/reminders/reminders_screen.dart';
 import 'package:expense_budget_manager/features/onboarding/onboarding_screen.dart';
 import 'package:expense_budget_manager/features/search/search_screen.dart';
 import 'package:expense_budget_manager/features/settings/settings_screen.dart';
@@ -81,6 +85,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.budgets,
         builder: (c, s) => const BudgetsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.debts,
+        builder: (c, s) => const DebtsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.reminders,
+        builder: (c, s) => const RemindersScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.importData,
+        builder: (c, s) => const ImportScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.backup,
+        builder: (c, s) => const BackupScreen(),
       ),
       GoRoute(
         path: AppRoutes.search,

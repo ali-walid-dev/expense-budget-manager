@@ -95,11 +95,14 @@ class _TxScreenState extends ConsumerState<TransactionsScreen> {
           pagingController: _pagingController,
           padding: const EdgeInsets.only(bottom: 120),
           separatorBuilder: (c, i) {
-            final current = _pagingController.itemList?[i];
-            final next = _pagingController.itemList?[i + 1];
-            if (current == null || next == null) {
-              return const SizedBox.shrink();
+            final list = _pagingController.itemList;
+            // i+1 can index past the end when a paging loader/error tile is
+            // appended (itemCount > itemList.length) — guard against RangeError.
+            if (list == null || i + 1 >= list.length) {
+              return const Divider(height: 0);
             }
+            final current = list[i];
+            final next = list[i + 1];
             final aDay = DateTime(current.dateTime.year, current.dateTime.month, current.dateTime.day);
             final bDay = DateTime(next.dateTime.year, next.dateTime.month, next.dateTime.day);
             if (aDay == bDay) return const Divider(height: 0);
@@ -118,8 +121,17 @@ class _TxScreenState extends ConsumerState<TransactionsScreen> {
                   padding: const EdgeInsetsDirectional.only(end: 24),
                   child: const Icon(Icons.delete, color: Colors.white)),
               direction: DismissDirection.endToStart,
+              // Bug 2 fix: do the delete here and ALWAYS return false. Returning
+              // true makes Dismissible finalize its own removal, but the paged
+              // list still holds the item until the async delete + stream
+              // refresh completes — so the dismissed widget lingers in the tree
+              // and trips the "dismissed Dismissible is still part of the tree"
+              // assertion, which black-screens / freezes the list. By returning
+              // false, the row is never removed by Dismissible; it disappears
+              // when transactionStreamSignalProvider refreshes the controller
+              // after the DB delete commits. No assertion, no black screen.
               confirmDismiss: (_) async {
-                return await showDialog<bool>(
+                final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (_) => AlertDialog(
                     title: Text(l.confirmDelete),
@@ -130,9 +142,12 @@ class _TxScreenState extends ConsumerState<TransactionsScreen> {
                     ],
                   ),
                 ) ?? false;
-              },
-              onDismissed: (_) {
-                ref.read(transactionsNotifierProvider.notifier).delete(item.id);
+                if (confirmed) {
+                  await ref
+                      .read(transactionsNotifierProvider.notifier)
+                      .delete(item.id);
+                }
+                return false;
               },
               child: InkWell(
                 onTap: () => context.push('${AppRoutes.addEdit}?txId=${item.id}'),

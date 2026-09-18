@@ -14,6 +14,11 @@ abstract class TransactionRepository {
     String query = '',
   });
 
+  /// Loads a single transaction (joined with category + account) by id, or
+  /// null if it no longer exists. Used by the edit screen so any transaction
+  /// loads regardless of how old it is.
+  Future<TransactionWithDetails?> getById(int id);
+
   Stream<List<TransactionWithDetails>> search(String query);
 
   Future<int> insert({
@@ -47,6 +52,11 @@ abstract class TransactionRepository {
 
   /// Used by analytics / budgets.
   Stream<List<CategorySpend>> watchSpendingByCategory(
+      DateTime start, DateTime end);
+
+  /// Like [watchSpendingByCategory] but rolls child-category spend up into the
+  /// parent (Feature 1 reports / Feature 8 breakdown).
+  Stream<List<CategorySpend>> watchSpendingByParentCategory(
       DateTime start, DateTime end);
 
   Stream<List<DailySpend>> watchDailyTrend(DateTime start, DateTime end);

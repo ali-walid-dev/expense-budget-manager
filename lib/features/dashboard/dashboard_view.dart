@@ -87,6 +87,37 @@ class DashboardView extends ConsumerWidget {
               _InsightBanner(text: l.highestCategory(s.topCategoryName!)),
             ],
             const SizedBox(height: 24),
+            SectionHeader(title: l.monthlyBreakdown),
+            const SizedBox(height: 8),
+            if (s.breakdown.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(child: Text(l.noData)),
+              )
+            else
+              ...s.breakdown.map((b) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                              color: b.color, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(b.name)),
+                        Text(
+                          '${money.format(b.totalMinor)}  (${(b.fraction * 100).round()}%)',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  )),
+            const SizedBox(height: 24),
             SectionHeader(
               title: l.recentTransactions,
               actionLabel: l.seeAll,

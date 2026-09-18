@@ -24,6 +24,14 @@ class TransactionRow extends ConsumerWidget {
       TransactionType.income => detail.amountMinor,
       TransactionType.transfer => detail.amountMinor,
     };
+    // Category is the title. When the row has no category (e.g. transfers) the
+    // note stands in as the title so it isn't lost — and is then not repeated
+    // as a subtitle below.
+    final note = detail.note?.trim() ?? '';
+    final hasNote = note.isNotEmpty;
+    final title = detail.categoryName ?? (hasNote ? note : '—');
+    final showNoteSubtitle = hasNote && detail.categoryName != null;
+
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
       child: Row(
@@ -43,13 +51,22 @@ class TransactionRow extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  detail.categoryName ?? detail.note ?? '—',
+                  title,
                   style: Theme.of(context).textTheme.titleSmall,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (showNoteSubtitle) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    note,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
                 const SizedBox(height: 2),
                 Text(
-                  '${detail.accountName} • ${dateF.time(detail.dateTime)}',
+                  '${detail.accountName} • ${dateF.dayMonth(detail.dateTime)}',
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
               ],

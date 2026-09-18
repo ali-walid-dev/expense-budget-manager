@@ -63,24 +63,26 @@ jobs:
           rm -rf lib && mv lib.bak lib
           rm pubspec.yaml.bak
 
-      # Per TECHNICAL_DOCUMENTATION.md §10: no INTERNET permission. The default
-      # AndroidManifest doesn't include it, but we strip it defensively. We also
-      # add the runtime permissions required by flutter_local_notifications and
-      # workmanager.
-      - name: Patch AndroidManifest.xml (permissions, no INTERNET)
+      # The app was originally fully offline (TECHNICAL_DOCUMENTATION.md §10),
+      # but Google Sign-In + Drive backup require network access, so INTERNET
+      # is now added. The app remains fully functional offline / signed-out.
+      # We also add the runtime permissions required by
+      # flutter_local_notifications and exact-alarm reminders.
+      - name: Patch AndroidManifest.xml (permissions)
         run: |
           MANIFEST=android/app/src/main/AndroidManifest.xml
           echo "Before patch:"
           cat $MANIFEST
 
-          # Strip any INTERNET permission.
-          sed -i '/android.permission.INTERNET/d' $MANIFEST
-
-          # Insert POST_NOTIFICATIONS + RECEIVE_BOOT_COMPLETED right after the
-          # opening <manifest ...> tag if they aren't already present.
+          # Insert required permissions right after the opening <manifest ...>
+          # tag if they aren't already present.
           if ! grep -q "POST_NOTIFICATIONS" $MANIFEST; then
-            sed -i 's|<manifest |<manifest |; /<manifest /a\    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>' $MANIFEST
+            sed -i 's|<manifest |<manifest |; /<manifest /a\    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>' $MANIFEST
           fi
+
+          # Rename the launcher label to the brand (Feature 5). flutter create
+          # sets it from the project name; override every android:label.
+          sed -i 's/android:label="[^"]*"/android:label="قرشين - Qirshayn"/g' $MANIFEST
 
           echo "After patch:"
           cat $MANIFEST
@@ -90,6 +92,14 @@ jobs:
           GRADLE=android/app/build.gradle.kts
           if [ ! -f "$GRADLE" ]; then GRADLE=android/app/build.gradle; fi
           echo "Using: $GRADLE"
+
+          # Relax the strict Kotlin/Java JVM-target consistency check. Some
+          # plugins (e.g. flutter_timezone) compile Kotlin to 1.8 while Java
+          # targets 11; the bytecode is compatible but newer Gradle fails the
+          # validation. `ignore` lets the build proceed.
+          if ! grep -q "kotlin.jvm.target.validation.mode" android/gradle.properties 2>/dev/null; then
+            echo "kotlin.jvm.target.validation.mode=ignore" >> android/gradle.properties
+          fi
 
           # Bump minSdk to 24.
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' "$GRADLE"
@@ -165,8 +175,73 @@ jobs:
           echo "--- Root gradle file after patch ---"
           cat "$ROOT_GRADLE"
 
+      # Google Sign-In requires the APK's signing SHA-1 to be registered in the
+      # Google Cloud Console. Without these secrets the release APK is signed
+      # with an EPHEMERAL debug key (different every run) and sign-in will fail
+      # with error 10 / DEVELOPER_ERROR. See README "Google Sign-In & Drive
+      # Backup" for how to create the keystore and secrets.
+      - name: Configure release signing (optional, from secrets)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "No ANDROID_KEYSTORE_BASE64 secret - release stays on the ephemeral debug key (Google Sign-In will NOT work in this APK)."
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+          {
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyPassword=$KEY_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "storeFile=release.keystore"
+          } > android/key.properties
+
+          GRADLE=android/app/build.gradle.kts
+          python3 - "$GRADLE" <<'PYEOF'
+          import re, sys
+          path = sys.argv[1]
+          src = open(path, encoding='utf-8').read()
+          if 'key.properties' not in src:
+              # Load key.properties after the plugins block (imports must stay first).
+              loader = (
+                  '\nval keystoreProperties = java.util.Properties()\n'
+                  'val keystorePropertiesFile = rootProject.file("key.properties")\n'
+                  'if (keystorePropertiesFile.exists()) {\n'
+                  '    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))\n'
+                  '}\n'
+              )
+              m = re.search(r'plugins\s*\{[^}]*\}\n', src)
+              insert_at = m.end() if m else 0
+              src = src[:insert_at] + loader + src[insert_at:]
+              # signingConfigs block right inside android { }.
+              signing = (
+                  '    signingConfigs {\n'
+                  '        create("release") {\n'
+                  '            keyAlias = keystoreProperties["keyAlias"] as String\n'
+                  '            keyPassword = keystoreProperties["keyPassword"] as String\n'
+                  '            storeFile = file(keystoreProperties["storeFile"] as String)\n'
+                  '            storePassword = keystoreProperties["storePassword"] as String\n'
+                  '        }\n'
+                  '    }\n'
+              )
+              src = re.sub(r'(android\s*\{\s*\n)', r'\1' + signing, src, count=1)
+              src = src.replace(
+                  'signingConfig = signingConfigs.getByName("debug")',
+                  'signingConfig = signingConfigs.getByName("release")')
+              open(path, 'w', encoding='utf-8').write(src)
+              print('Release signing configured from secrets.')
+          else:
+              print('Signing already configured.')
+          PYEOF
+
       - name: flutter pub get
         run: flutter pub get
+
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
 
       - name: Code generation (Drift, etc.)
         run: dart run build_runner build --delete-conflicting-outputs
@@ -176,6 +251,9 @@ jobs:
 
       - name: Static analysis
         run: flutter analyze --no-fatal-warnings || true
+
+      - name: Run unit tests
+        run: flutter test
 
       - name: Build APK
         env:
